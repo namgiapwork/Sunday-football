@@ -2,10 +2,16 @@ import Link from "next/link";
 import { isConfigured } from "@/lib/env";
 import { SetupRequired } from "@/components/ui/setup-required";
 import { AdminLoginForm } from "./admin-login-form";
+import { ResetLinkError } from "./reset-link-error";
 
 export const metadata = { title: "Admin sign in — Sunday Football" };
 
-export default function AdminLoginPage() {
+export default async function AdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   if (!isConfigured()) return <SetupRequired />;
 
   return (
@@ -14,6 +20,8 @@ export default function AdminLoginPage() {
       <p className="mt-1 mb-6 text-sm text-chalk-dim">
         Running a Sunday needs the email login, not a 4-digit PIN.
       </p>
+
+      <ResetLinkError reason={error} />
 
       <AdminLoginForm />
 

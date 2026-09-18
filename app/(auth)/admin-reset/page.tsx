@@ -11,9 +11,7 @@ export default function AdminResetPage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-5 py-10">
       <h1 className="text-3xl font-black tracking-tight">Choose a new password</h1>
-      <p className="mt-1 mb-6 text-sm text-chalk-dim">
-        You followed a reset link, so you can set a new password here.
-      </p>
+      <p className="mt-1 mb-6 text-sm text-chalk-dim">At least 8 characters.</p>
 
       <SetPasswordForm />
 
