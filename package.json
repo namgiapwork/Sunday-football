@@ -18,7 +18,8 @@
     "setup:vercel": "node scripts/set-vercel-token.mjs",
     "setup:supabase": "node scripts/set-supabase-token.mjs",
     "db:apply": "tsx scripts/db-api.ts",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "admin:password": "node scripts/set-admin-password.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
