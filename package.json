@@ -17,7 +17,8 @@
     "setup:db": "node scripts/set-db-url.mjs",
     "setup:vercel": "node scripts/set-vercel-token.mjs",
     "setup:supabase": "node scripts/set-supabase-token.mjs",
-    "db:apply": "tsx scripts/db-api.ts"
+    "db:apply": "tsx scripts/db-api.ts",
+    "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -41,6 +42,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "pg": "^8.23.0",
+    "sharp": "^0.35.4",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5",
