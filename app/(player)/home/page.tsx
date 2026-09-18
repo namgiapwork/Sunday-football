@@ -1,6 +1,6 @@
 import { requirePlayerPage } from "@/lib/auth/current-user";
 import { getGroup } from "@/lib/data/groups";
-import { listUpcomingSessions } from "@/lib/data/sessions";
+import { listRoster, listUpcomingSessions } from "@/lib/data/sessions";
 import { Alert } from "@/components/ui/alert";
 import { SessionList } from "@/components/sessions/session-list";
 
@@ -18,7 +18,10 @@ export default async function HomePage() {
     );
   }
 
-  const upcoming = await listUpcomingSessions(group.id, user.player.id);
+  const [upcoming, roster] = await Promise.all([
+    listUpcomingSessions(group.id, user.player.id),
+    listRoster(group.id),
+  ]);
 
   return (
     <main>
@@ -30,7 +33,7 @@ export default async function HomePage() {
         </p>
       </header>
 
-      <SessionList sessions={upcoming} timezone={group.timezone} />
+      <SessionList sessions={upcoming} roster={roster} timezone={group.timezone} />
     </main>
   );
 }

@@ -9,7 +9,8 @@ import { signupClosedReason, signupIsOpen, teamsAwaitingReveal, teamsVisible } f
 import { formatDeadline, formatSessionDate, formatTimeRange } from "@/lib/time/group-time";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Alert } from "@/components/ui/alert";
-import type { UpcomingSession } from "@/lib/data/sessions";
+import { PlayerAvatar } from "@/components/players/player-avatar";
+import type { Participant, RosterEntry, UpcomingSession } from "@/lib/data/sessions";
 import type { SignupStatus } from "@/types/database";
 
 /**
@@ -19,9 +20,11 @@ import type { SignupStatus } from "@/types/database";
  */
 export function SessionList({
   sessions,
+  roster,
   timezone,
 }: {
   sessions: UpcomingSession[];
+  roster: RosterEntry[];
   timezone: string;
 }) {
   const [live, setLive] = useState(sessions);
@@ -40,16 +43,39 @@ export function SessionList({
     const supabase = supabaseBrowser();
     const sessionIds = ids.split(",");
 
+    const byId = new Map(roster.map((p) => [p.id, p]));
+
     async function refresh() {
-      const { data } = await supabase.from("signups").select("session_id, status").in("session_id", sessionIds);
+      const { data } = await supabase
+        .from("signups")
+        .select("session_id, player_id, status")
+        .in("session_id", sessionIds);
       if (!data) return;
 
       setLive((current) =>
         current.map((entry) => {
           const tally = { confirmed: 0, maybe: 0, declined: 0 };
+          const participants: Participant[] = [];
+
           for (const row of data) {
-            if (row.session_id === entry.session.id) tally[row.status as keyof typeof tally] += 1;
+            if (row.session_id !== entry.session.id) continue;
+            tally[row.status as keyof typeof tally] += 1;
+
+            const player = byId.get(row.player_id);
+            if (player && row.status !== "declined") {
+              participants.push({
+                playerId: player.id,
+                name: player.name,
+                avatarUrl: player.avatarUrl,
+                status: row.status as Participant["status"],
+              });
+            }
           }
+
+          participants.sort((a, b) =>
+            a.status !== b.status ? (a.status === "confirmed" ? -1 : 1) : a.name.localeCompare(b.name),
+          );
+
           return {
             ...entry,
             summary: {
@@ -57,6 +83,7 @@ export function SessionList({
               ...tally,
               noResponse: Math.max(0, entry.summary.invited - tally.confirmed - tally.maybe - tally.declined),
             },
+            participants,
           };
         }),
       );
@@ -72,7 +99,7 @@ export function SessionList({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [ids]);
+  }, [ids, roster]);
 
   if (live.length === 0) {
     return (
@@ -106,9 +133,11 @@ function SessionCard({
   timezone: string;
   featured: boolean;
 }) {
-  const { session, summary, mySignup } = entry;
+  const { session, summary, mySignup, participants } = entry;
   const [state, action] = useActionState(setSignupAction, IDLE);
   const [pressed, setPressed] = useState<SignupStatus | null>(null);
+  // Opened by default on the nearest Sunday once you have answered.
+  const [showPlayers, setShowPlayers] = useState(featured && mySignup !== null);
 
   const open = signupIsOpen(session);
   const cancelled = session.status === "cancelled";
@@ -140,15 +169,47 @@ function SessionCard({
         </div>
       ) : (
         <>
-          <div className="flex items-baseline gap-2 px-5 pt-3">
+          <button
+            type="button"
+            onClick={() => setShowPlayers((v) => !v)}
+            aria-expanded={showPlayers}
+            disabled={participants.length === 0}
+            className="flex w-full items-baseline gap-2 px-5 pt-3 text-left disabled:cursor-default"
+          >
             <span className={`tabular font-black ${featured ? "text-4xl" : "text-2xl"}`}>
               {summary.confirmed}
             </span>
             <span className="text-sm font-semibold text-chalk-dim">playing</span>
+            {participants.length > 0 ? (
+              <span aria-hidden className={`text-chalk-faint transition-transform ${showPlayers ? "rotate-180" : ""}`}>
+                ▾
+              </span>
+            ) : null}
             <span className="ml-auto text-xs text-chalk-faint">
               {summary.maybe} maybe · {summary.declined} out
             </span>
-          </div>
+          </button>
+
+          {showPlayers && participants.length > 0 ? (
+            <ul className="flex flex-wrap gap-2 px-5 pt-3">
+              {participants.map((player) => (
+                <li
+                  key={player.playerId}
+                  className={`flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 ${
+                    player.status === "maybe"
+                      ? "border-kit-yellow/30 opacity-70"
+                      : "border-pitch-700"
+                  }`}
+                >
+                  <PlayerAvatar name={player.name} avatarUrl={player.avatarUrl} size="sm" />
+                  <span className="text-sm font-semibold">{player.name}</span>
+                  {player.status === "maybe" ? (
+                    <span className="text-[10px] font-bold text-kit-yellow">maybe</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
           {open ? (
             <form action={action} className="px-5 pt-3 pb-4">
@@ -191,9 +252,10 @@ function SessionCard({
                 →
               </span>
             </Link>
-          ) : teamsAwaitingReveal(session) ? (
+          ) : session.teams_reveal_at && new Date(session.teams_reveal_at) > new Date() ? (
             <p className="border-t border-pitch-800 px-5 py-3 text-sm text-chalk-faint">
-              Teams go up {formatDeadline(session.teams_reveal_at!, timezone)}
+              {teamsAwaitingReveal(session) ? "Teams are picked — they go up" : "Teams revealed"}{" "}
+              {formatDeadline(session.teams_reveal_at, timezone)}
             </p>
           ) : null}
         </>

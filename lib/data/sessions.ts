@@ -166,10 +166,26 @@ export async function getConfirmedPlayersForGeneration(sessionId: string): Promi
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+export interface Participant {
+  playerId: string;
+  name: string;
+  avatarUrl: string | null;
+  status: SignupStatus;
+}
+
 export interface UpcomingSession {
   session: SessionWithVenue;
   summary: AttendanceSummary;
   mySignup: SignupStatus | null;
+  /** Everyone who has said yes or maybe, so players can see who is coming. */
+  participants: Participant[];
+}
+
+/** Active members, so the browser can rebuild the lists when realtime fires. */
+export interface RosterEntry {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
 }
 
 /**
@@ -197,26 +213,46 @@ export async function listUpcomingSessions(
 
   const ids = sessions.map((s) => s.id);
 
-  const [{ data: signups }, { count: invited }] = await Promise.all([
+  const [{ data: signups }, { data: members }] = await Promise.all([
     db.from("signups").select("session_id, player_id, status").in("session_id", ids),
     db
       .from("group_members")
-      .select("id", { count: "exact", head: true })
+      .select("player:players!inner(id, name, avatar_url, is_active)")
       .eq("group_id", groupId)
       .eq("is_active", true),
   ]);
 
+  const roster = new Map<string, RosterEntry>();
+  for (const row of members ?? []) {
+    const player = row.player as unknown as { id: string; name: string; avatar_url: string | null; is_active: boolean };
+    if (player.is_active) roster.set(player.id, { id: player.id, name: player.name, avatarUrl: player.avatar_url });
+  }
+
   const counts = new Map<string, { confirmed: number; maybe: number; declined: number }>();
   const mine = new Map<string, SignupStatus>();
+  const bySession = new Map<string, Participant[]>();
 
   for (const row of signups ?? []) {
     const tally = counts.get(row.session_id) ?? { confirmed: 0, maybe: 0, declined: 0 };
     tally[row.status as keyof typeof tally] += 1;
     counts.set(row.session_id, tally);
+
     if (row.player_id === playerId) mine.set(row.session_id, row.status as SignupStatus);
+
+    const player = roster.get(row.player_id);
+    if (player && row.status !== "declined") {
+      const list = bySession.get(row.session_id) ?? [];
+      list.push({
+        playerId: player.id,
+        name: player.name,
+        avatarUrl: player.avatarUrl,
+        status: row.status as SignupStatus,
+      });
+      bySession.set(row.session_id, list);
+    }
   }
 
-  const total = invited ?? 0;
+  const total = roster.size;
 
   return sessions.map((session) => {
     const tally = counts.get(session.id) ?? { confirmed: 0, maybe: 0, declined: 0 };
@@ -228,8 +264,29 @@ export async function listUpcomingSessions(
         noResponse: Math.max(0, total - tally.confirmed - tally.maybe - tally.declined),
       },
       mySignup: mine.get(session.id) ?? null,
+      participants: (bySession.get(session.id) ?? []).sort(byStatusThenName),
     };
   });
+}
+
+/** Confirmed first, then maybes, each alphabetical. */
+function byStatusThenName(a: Participant, b: Participant): number {
+  if (a.status !== b.status) return a.status === "confirmed" ? -1 : 1;
+  return a.name.localeCompare(b.name);
+}
+
+/** The directory the browser needs to rebuild participant lists on a realtime event. */
+export async function listRoster(groupId: string): Promise<RosterEntry[]> {
+  const { data } = await supabaseAdmin()
+    .from("group_members")
+    .select("player:players!inner(id, name, avatar_url, is_active)")
+    .eq("group_id", groupId)
+    .eq("is_active", true);
+
+  return (data ?? [])
+    .map((row) => row.player as unknown as { id: string; name: string; avatar_url: string | null; is_active: boolean })
+    .filter((p) => p.is_active)
+    .map((p) => ({ id: p.id, name: p.name, avatarUrl: p.avatar_url }));
 }
 
 export interface AttendanceCell {
