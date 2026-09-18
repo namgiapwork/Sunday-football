@@ -224,7 +224,7 @@ from scorers s;
 -- ---------------------------------------------------------------------------
 
 insert into sessions (id, group_id, date, start_time, end_time, venue_id,
-                      location_notes, signup_deadline, status, created_by)
+                      location_notes, signup_deadline, teams_reveal_at, status, created_by)
 values (
   '44444444-4444-4444-8444-444444444442',
   '11111111-1111-4111-8111-111111111111',
@@ -233,6 +233,7 @@ values (
   '22222222-2222-4222-8222-222222222221',
   'Pitch 3',
   (date_trunc('week', current_date)::date + 7 + time '23:59') at time zone 'Europe/Amsterdam',
+  (date_trunc('week', current_date)::date + 4 + time '23:59') at time zone 'Europe/Amsterdam',
   'signup_open',
   '33333333-3333-4333-8333-000000000001'
 );

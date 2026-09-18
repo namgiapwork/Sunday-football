@@ -56,9 +56,32 @@ export function allowedTransitions(from: SessionStatus): SessionStatus[] {
   return [...ALLOWED_TRANSITIONS[from]];
 }
 
-/** Teams exist and are visible to players. */
+/** The session has reached a stage where published teams exist. */
 export function teamsArePublic(status: SessionStatus): boolean {
   return status === "teams_published" || status === "in_progress" || status === "completed";
+}
+
+/**
+ * Whether players can see the teams yet. Teams are published when the organiser
+ * is happy with them, but only revealed at the scheduled moment — by default the
+ * end of the Friday before — so they can be prepared early without going out
+ * days ahead of the game.
+ */
+export function teamsVisible(
+  session: { status: SessionStatus; teams_reveal_at: string | null },
+  now: Date = new Date(),
+): boolean {
+  if (!teamsArePublic(session.status)) return false;
+  if (!session.teams_reveal_at) return true;
+  return now.getTime() >= new Date(session.teams_reveal_at).getTime();
+}
+
+/** Teams are ready but still under wraps. */
+export function teamsAwaitingReveal(
+  session: { status: SessionStatus; teams_reveal_at: string | null },
+  now: Date = new Date(),
+): boolean {
+  return teamsArePublic(session.status) && !teamsVisible(session, now);
 }
 
 export function isPast(status: SessionStatus): boolean {

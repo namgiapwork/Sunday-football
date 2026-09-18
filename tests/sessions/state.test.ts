@@ -7,6 +7,8 @@ import {
   signupClosedReason,
   signupIsOpen,
   teamsArePublic,
+  teamsAwaitingReveal,
+  teamsVisible,
   SESSION_STATUSES,
 } from "@/lib/sessions/state";
 
@@ -121,6 +123,38 @@ describe("visibility and guidance", () => {
     expect(teamsArePublic("teams_published")).toBe(true);
     expect(teamsArePublic("in_progress")).toBe(true);
     expect(teamsArePublic("completed")).toBe(true);
+  });
+
+  describe("scheduled reveal", () => {
+    const REVEAL = "2026-09-18T21:59:00.000Z";
+    const published = { status: "teams_published" as const, teams_reveal_at: REVEAL };
+    const before = new Date("2026-09-18T12:00:00Z");
+    const after = new Date("2026-09-18T23:00:00Z");
+
+    it("hides published teams until the reveal time", () => {
+      expect(teamsVisible(published, before)).toBe(false);
+      expect(teamsAwaitingReveal(published, before)).toBe(true);
+    });
+
+    it("shows them once the reveal time passes", () => {
+      expect(teamsVisible(published, after)).toBe(true);
+      expect(teamsAwaitingReveal(published, after)).toBe(false);
+    });
+
+    it("shows them immediately when no reveal time is set", () => {
+      expect(teamsVisible({ status: "teams_published", teams_reveal_at: null }, before)).toBe(true);
+    });
+
+    it("never reveals teams that are not published, whatever the clock says", () => {
+      expect(teamsVisible({ status: "teams_generated", teams_reveal_at: REVEAL }, after)).toBe(false);
+      expect(teamsAwaitingReveal({ status: "teams_generated", teams_reveal_at: REVEAL }, before)).toBe(false);
+    });
+
+    it("keeps showing them on match day and afterwards", () => {
+      for (const status of ["in_progress", "completed"] as const) {
+        expect(teamsVisible({ status, teams_reveal_at: REVEAL }, after), status).toBe(true);
+      }
+    });
   });
 
   it("tells the admin what to do next at every live stage", () => {

@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth/current-user";
 import { getGroup } from "@/lib/data/groups";
 import { getSession } from "@/lib/data/sessions";
 import { assertTransition, type SessionStatus } from "@/lib/sessions/state";
-import { defaultSignupDeadline } from "@/lib/sessions/deadline";
+import { defaultSignupDeadline, defaultTeamsRevealAt } from "@/lib/sessions/deadline";
 import { missingSundays, UPCOMING_LIMIT } from "@/lib/sessions/upcoming";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { localToUtcIso } from "@/lib/time/group-time";
@@ -50,7 +50,12 @@ export async function saveSessionAction(_prev: ActionState, formData: FormData):
     } else {
       const { error } = await db
         .from("sessions")
-        .insert({ ...payload, status: "signup_open", created_by: admin.player.id });
+        .insert({
+          ...payload,
+          status: "signup_open",
+          teams_reveal_at: defaultTeamsRevealAt(input.date, group),
+          created_by: admin.player.id,
+        });
       if (error) throw friendlier(error);
     }
 
@@ -176,6 +181,7 @@ export async function createUpcomingSundaysAction(
       end_time: group.default_end_time,
       venue_id: group.default_venue_id,
       signup_deadline: defaultSignupDeadline(date, group),
+      teams_reveal_at: defaultTeamsRevealAt(date, group),
       status: "signup_open" as const,
       created_by: admin.player.id,
     }));

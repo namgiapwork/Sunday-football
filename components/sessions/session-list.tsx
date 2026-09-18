@@ -5,7 +5,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { setSignupAction } from "@/app/actions/signup";
 import { IDLE } from "@/lib/actions/result";
-import { signupClosedReason, signupIsOpen, teamsArePublic } from "@/lib/sessions/state";
+import { signupClosedReason, signupIsOpen, teamsAwaitingReveal, teamsVisible } from "@/lib/sessions/state";
 import { formatDeadline, formatSessionDate, formatTimeRange } from "@/lib/time/group-time";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Alert } from "@/components/ui/alert";
@@ -181,7 +181,7 @@ function SessionCard({
             </div>
           )}
 
-          {teamsArePublic(session.status) ? (
+          {teamsVisible(session) ? (
             <Link
               href="/teams"
               className="flex items-center justify-between border-t border-pitch-800 bg-lime/10 px-5 py-3"
@@ -191,6 +191,10 @@ function SessionCard({
                 →
               </span>
             </Link>
+          ) : teamsAwaitingReveal(session) ? (
+            <p className="border-t border-pitch-800 px-5 py-3 text-sm text-chalk-faint">
+              Teams go up {formatDeadline(session.teams_reveal_at!, timezone)}
+            </p>
           ) : null}
         </>
       )}

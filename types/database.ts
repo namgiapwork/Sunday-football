@@ -23,6 +23,8 @@ export type GroupRow = {
   default_start_time: string;
   default_end_time: string;
   default_signup_close_days_after: number;
+  default_teams_reveal_days_before: number;
+  default_teams_reveal_time: string;
   default_signup_deadline_time: string;
   default_venue_id: string | null;
   default_max_players: number | null;
@@ -96,6 +98,7 @@ export type SessionRow = {
   venue_address_snapshot: string | null;
   venue_notes_snapshot: string | null;
   signup_deadline: string;
+  teams_reveal_at: string | null;
   status: SessionStatus;
   note: string | null;
   cancellation_reason: string | null;

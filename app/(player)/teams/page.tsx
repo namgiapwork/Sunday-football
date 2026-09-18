@@ -3,8 +3,8 @@ import { requirePlayer } from "@/lib/auth/current-user";
 import { getGroup } from "@/lib/data/groups";
 import { getCurrentSession } from "@/lib/data/sessions";
 import { getMyTeam, getTeams } from "@/lib/data/teams";
-import { teamsArePublic } from "@/lib/sessions/state";
-import { formatSessionDate } from "@/lib/time/group-time";
+import { teamsAwaitingReveal, teamsVisible } from "@/lib/sessions/state";
+import { formatDeadline, formatSessionDate } from "@/lib/time/group-time";
 import { Alert } from "@/components/ui/alert";
 import { SectionTitle } from "@/components/ui/card";
 import { TeamCard } from "@/components/teams/team-card";
@@ -20,9 +20,20 @@ export default async function TeamsPage() {
   const session = await getCurrentSession(group.id);
   if (!session) return <Empty message="No Sunday is scheduled yet." />;
 
-  if (!teamsArePublic(session.status)) {
+  if (teamsAwaitingReveal(session)) {
     return (
-      <Empty message="Teams are not ready yet. They appear here the moment the organisers finish picking them, usually the day before." />
+      <Empty
+        message={`Teams are picked. They go up ${formatDeadline(
+          session.teams_reveal_at!,
+          group.timezone,
+        )} — check back then.`}
+      />
+    );
+  }
+
+  if (!teamsVisible(session)) {
+    return (
+      <Empty message="Teams are not ready yet. They appear here as soon as the organisers have picked them." />
     );
   }
 

@@ -7,6 +7,7 @@ import { getGroup } from "@/lib/data/groups";
 import { getConfirmedPlayersForGeneration, getSession } from "@/lib/data/sessions";
 import { getTeams } from "@/lib/data/teams";
 import { assertTransition } from "@/lib/sessions/state";
+import { defaultTeamsRevealAt } from "@/lib/sessions/deadline";
 import { generateBalancedTeams } from "@/lib/teams/generate-balanced-teams";
 import { kitForIndex } from "@/components/teams/team-colours";
 import { isPositionCode } from "@/lib/teams/positions";
@@ -297,4 +298,43 @@ export async function unpublishTeamsAction(_prev: ActionState, formData: FormDat
 
 function capitalise(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+/**
+ * Brings the reveal forward to now, or pushes it back to the scheduled time.
+ * Publishing decides the teams are final; this decides when players see them.
+ */
+export async function setTeamsRevealAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const admin = await requireAdmin();
+    const sessionId = String(formData.get("sessionId") ?? "");
+    const when = String(formData.get("when") ?? "");
+
+    const session = await getSession(sessionId);
+    if (!session) return { ok: false, error: "That Sunday no longer exists." };
+
+    const group = await getGroup();
+    if (!group) return { ok: false, error: "This football group has not been set up yet." };
+
+    const revealAt =
+      when === "now" ? new Date().toISOString() : defaultTeamsRevealAt(session.date, group);
+
+    const { error } = await supabaseAdmin()
+      .from("sessions")
+      .update({ teams_reveal_at: revealAt, updated_by: admin.player.id })
+      .eq("id", sessionId);
+
+    if (error) throw error;
+
+    revalidatePath(`/admin/session/${sessionId}/teams`);
+    revalidatePath("/home");
+    revalidatePath("/teams");
+
+    return {
+      ok: true,
+      message: when === "now" ? "Teams are visible to players now." : "Reveal put back to the usual time.",
+    };
+  } catch (error) {
+    return toActionState(error);
+  }
 }

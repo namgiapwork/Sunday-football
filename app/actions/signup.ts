@@ -31,7 +31,17 @@ export async function setSignupAction(_prev: ActionState, formData: FormData): P
 
     if (error) throw error;
 
+    // If teams are already picked, a change of heart has to show on the team
+    // sheet — the organiser is warned, but nothing is reshuffled behind their
+    // back (spec §27).
+    await supabaseAdmin()
+      .from("team_members")
+      .update({ is_available: status === "confirmed" })
+      .eq("session_id", sessionId)
+      .eq("player_id", user.player.id);
+
     revalidatePath("/home");
+    revalidatePath("/teams");
     return { ok: true, message: statusMessage(status) };
   } catch (error) {
     return toActionState(error);

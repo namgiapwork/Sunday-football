@@ -97,3 +97,26 @@ describe("missingSundays", () => {
     ).toEqual([]);
   });
 });
+
+describe("reveal defaults", () => {
+  it("puts the reveal on the Friday before a Sunday game", async () => {
+    const { defaultTeamsRevealAt } = await import("@/lib/sessions/deadline");
+    const revealed = defaultTeamsRevealAt("2026-09-20", {
+      default_teams_reveal_days_before: 2,
+      default_teams_reveal_time: "23:59",
+      timezone: "Europe/Amsterdam",
+    });
+    // Friday 18 September, 23:59 Amsterdam = 21:59 UTC in summer time.
+    expect(revealed).toBe("2026-09-18T21:59:00.000Z");
+  });
+
+  it("closes signup the day after the game", async () => {
+    const { defaultSignupDeadline } = await import("@/lib/sessions/deadline");
+    const closes = defaultSignupDeadline("2026-09-20", {
+      default_signup_close_days_after: 1,
+      default_signup_deadline_time: "23:59",
+      timezone: "Europe/Amsterdam",
+    });
+    expect(closes).toBe("2026-09-21T21:59:00.000Z");
+  });
+});

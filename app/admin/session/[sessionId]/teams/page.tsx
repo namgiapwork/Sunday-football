@@ -4,15 +4,16 @@ import { requireAdmin } from "@/lib/auth/current-user";
 import { getGroup } from "@/lib/data/groups";
 import { getAttendanceSummary, getConfirmedPlayersForGeneration, getSession } from "@/lib/data/sessions";
 import { getTeams } from "@/lib/data/teams";
-import { SESSION_STATUS_LABELS } from "@/lib/sessions/state";
+import { SESSION_STATUS_LABELS, teamsVisible } from "@/lib/sessions/state";
 import { buildShareText } from "@/lib/teams/share-text";
 import { summariseArrangement } from "@/lib/teams/summarise";
 import { recommendTeamSizes } from "@/lib/teams/team-sizes";
-import { formatSessionDate } from "@/lib/time/group-time";
+import { formatDeadline, formatSessionDate } from "@/lib/time/group-time";
 import { Alert } from "@/components/ui/alert";
 import { SectionTitle } from "@/components/ui/card";
 import { GenerateTeamsForm } from "@/components/teams/generate-teams-form";
 import { PublishControls } from "@/components/teams/publish-controls";
+import { RevealControls } from "@/components/teams/reveal-controls";
 import { ShareTeams } from "@/components/teams/share-teams";
 import { TeamBalanceIndicator } from "@/components/teams/team-balance-indicator";
 import { TeamEditor } from "@/components/teams/team-editor";
@@ -115,6 +116,19 @@ export default async function TeamGeneratorPage({
             <SectionTitle className="mb-3">Publish</SectionTitle>
             <PublishControls sessionId={session.id} published={published} />
           </div>
+
+          {published ? (
+            <div className="mt-8">
+              <SectionTitle className="mb-3">Reveal to players</SectionTitle>
+              <RevealControls
+                sessionId={session.id}
+                revealed={teamsVisible(session)}
+                revealLabel={
+                  session.teams_reveal_at ? formatDeadline(session.teams_reveal_at, group.timezone) : null
+                }
+              />
+            </div>
+          ) : null}
 
           <div className="mt-8">
             <SectionTitle className="mb-3">Share to Messenger</SectionTitle>
