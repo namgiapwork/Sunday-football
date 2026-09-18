@@ -15,7 +15,8 @@ export default async function ProfilePage() {
     <main className="px-5 py-8">
       <h1 className="mb-1 text-3xl font-black tracking-tight">Your profile</h1>
       <p className="mb-6 text-sm text-chalk-dim">
-        Changing your positions or ratings affects future Sundays. Teams already published stay as they are.
+        Your positions and ratings are used whenever teams get picked next — including this Sunday, if the
+        teams are not out yet. Teams that have already gone up keep the ratings they were picked with.
       </p>
 
       <ProfileForm

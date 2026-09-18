@@ -46,8 +46,9 @@ export async function updateProfileAction(_prev: ActionState, formData: FormData
 
     revalidatePath("/profile");
     revalidatePath(`/player/${user.player.id}`);
-    // Ratings only ever affect future Sundays; published teams keep their snapshot.
-    return { ok: true, message: "Profile saved. Changes apply from the next Sunday." };
+    // The generator reads live ratings, so a change counts for the next teams
+    // picked — including this Sunday. Teams already picked keep their snapshot.
+    return { ok: true, message: "Saved. This is what the next teams will be picked from." };
   } catch (error) {
     return toActionState(error);
   }
