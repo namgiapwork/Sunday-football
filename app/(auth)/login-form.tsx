@@ -19,6 +19,16 @@ interface PlayerOption {
 export function LoginForm({ players }: { players: PlayerOption[] }) {
   const [state, action] = useActionState(loginAction, IDLE);
   const [selected, setSelected] = useState<PlayerOption | null>(null);
+
+  // Remount the PIN boxes after a wrong PIN so they clear and refocus, rather
+  // than leaving the failed digits for the player to delete one by one.
+  const [failures, setFailures] = useState(0);
+  const [lastState, setLastState] = useState(state);
+  if (lastState !== state) {
+    setLastState(state);
+    if (state.ok === false) setFailures((n) => n + 1);
+  }
+
   const [query, setQuery] = useState("");
 
   const matches = useMemo(() => {
@@ -92,7 +102,7 @@ export function LoginForm({ players }: { players: PlayerOption[] }) {
 
       <div>
         <p className="mb-2 text-lg font-bold">Enter PIN</p>
-        <PinInput autoFocus />
+        <PinInput key={failures} autoFocus />
       </div>
 
       {state.ok === false ? <Alert tone="error">{state.error}</Alert> : null}

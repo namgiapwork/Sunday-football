@@ -133,9 +133,14 @@ function Group({
           const id = "playerId" in person ? person.playerId : person.id;
           const avatar = "avatarUrl" in person ? person.avatarUrl : null;
           return (
-            <li key={id} className="flex items-center gap-3 px-4 py-2.5">
-              <PlayerAvatar name={person.name} avatarUrl={avatar} size="sm" />
-              <span className="font-semibold">{person.name}</span>
+            <li key={id}>
+              <Link
+                href={`/player/${id}`}
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-pitch-850"
+              >
+                <PlayerAvatar name={person.name} avatarUrl={avatar} size="sm" />
+                <span className="font-semibold">{person.name}</span>
+              </Link>
             </li>
           );
         })}

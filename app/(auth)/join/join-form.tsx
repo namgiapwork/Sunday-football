@@ -17,7 +17,7 @@ export function JoinForm() {
   return (
     <form action={action} className="flex flex-col gap-6">
       <Field label="Your name" hint="What everyone calls you." error={fieldErrors?.name}>
-        <Input name="name" required maxLength={40} autoComplete="nickname" placeholder="e.g. Khoi" />
+        <Input name="name" required maxLength={40} autoComplete="nickname" />
       </Field>
 
       <div>
