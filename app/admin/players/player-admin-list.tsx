@@ -1,7 +1,12 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import { resetPinAction, setPlayerActiveAction, setRoleAction } from "@/app/actions/admin-players";
+import {
+  deletePlayerAction,
+  resetPinAction,
+  setPlayerActiveAction,
+  setRoleAction,
+} from "@/app/actions/admin-players";
 import { IDLE } from "@/lib/actions/result";
 import type { PositionCode } from "@/lib/teams/positions";
 import type { MemberRole } from "@/types/database";
@@ -95,17 +100,20 @@ function PlayerActions({ player, isSelf }: { player: AdminPlayer; isSelf: boolea
   const [roleState, roleAction] = useActionState(setRoleAction, IDLE);
   const [pinState, pinAction] = useActionState(resetPinAction, IDLE);
   const [activeState, activeAction] = useActionState(setPlayerActiveAction, IDLE);
+  const [deleteState, deleteAction] = useActionState(deletePlayerAction, IDLE);
 
   const message =
     (roleState.ok === true && roleState.message) ||
     (pinState.ok === true && pinState.message) ||
     (activeState.ok === true && activeState.message) ||
+    (deleteState.ok === true && deleteState.message) ||
     null;
 
   const error =
     (roleState.ok === false && roleState.error) ||
     (pinState.ok === false && pinState.error) ||
     (activeState.ok === false && activeState.error) ||
+    (deleteState.ok === false && deleteState.error) ||
     null;
 
   return (
@@ -170,13 +178,33 @@ function PlayerActions({ player, isSelf }: { player: AdminPlayer; isSelf: boolea
       </form>
 
       {!isSelf ? (
-        <form action={activeAction}>
-          <input type="hidden" name="playerId" value={player.id} />
-          <input type="hidden" name="active" value={player.isActive ? "false" : "true"} />
-          <SubmitButton size="sm" variant={player.isActive ? "danger" : "secondary"} pendingLabel="…">
-            {player.isActive ? "Deactivate" : "Reactivate"}
-          </SubmitButton>
-        </form>
+        <div className="flex flex-wrap gap-3">
+          <form action={activeAction}>
+            <input type="hidden" name="playerId" value={player.id} />
+            <input type="hidden" name="active" value={player.isActive ? "false" : "true"} />
+            <SubmitButton size="sm" variant={player.isActive ? "danger" : "secondary"} pendingLabel="…">
+              {player.isActive ? "Deactivate" : "Reactivate"}
+            </SubmitButton>
+          </form>
+
+          <form
+            action={deleteAction}
+            onSubmit={(event) => {
+              if (
+                !window.confirm(
+                  `Delete ${player.name} permanently? This cannot be undone. It is refused if they have ever played.`,
+                )
+              ) {
+                event.preventDefault();
+              }
+            }}
+          >
+            <input type="hidden" name="playerId" value={player.id} />
+            <SubmitButton size="sm" variant="ghost" pendingLabel="…">
+              Delete permanently
+            </SubmitButton>
+          </form>
+        </div>
       ) : null}
 
       {message ? (
