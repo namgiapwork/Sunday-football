@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { requirePlayerPage } from "@/lib/auth/current-user";
 import { getGroup } from "@/lib/data/groups";
-import { getCurrentSession, type SessionWithVenue } from "@/lib/data/sessions";
+import {
+  getCurrentSession,
+  listUnassignedConfirmed,
+  type SessionWithVenue,
+} from "@/lib/data/sessions";
 import { getMyTeam, getTeams } from "@/lib/data/teams";
 import { teamsAwaitingReveal, teamsVisible } from "@/lib/sessions/state";
 import { formatDeadline, formatSessionDate, formatTimeRange } from "@/lib/time/group-time";
@@ -53,8 +57,11 @@ export default async function TeamsPage() {
   }
 
   // Ratings are deliberately not requested for this page.
-  const teams = await getTeams(session.id, false);
-  const myTeamId = await getMyTeam(session.id, user.player.id);
+  const [teams, myTeamId, waiting] = await Promise.all([
+    getTeams(session.id, false),
+    getMyTeam(session.id, user.player.id),
+    listUnassignedConfirmed(session.id),
+  ]);
   const myTeam = teams.find((t) => t.id === myTeamId);
   const others = teams.filter((t) => t.id !== myTeamId);
 
@@ -72,11 +79,35 @@ export default async function TeamsPage() {
           </h2>
           <TeamCard team={myTeam} highlight />
         </>
+      ) : waiting.some((p) => p.playerId === user.player.id) ? (
+        <Alert tone="info">
+          You signed up after the teams were picked, so you are not on a sheet yet. The organisers will
+          slot you in — nobody else gets moved around for it.
+        </Alert>
       ) : (
         <Alert tone="info">
           You are not in a team this week. If that looks wrong, message the organisers.
         </Alert>
       )}
+
+      {waiting.length > 0 ? (
+        <div className="mt-8">
+          <SectionTitle className="mb-2">Waiting to be placed ({waiting.length})</SectionTitle>
+          <p className="mb-3 text-sm text-chalk-faint">
+            Signed up after the teams went out. The organisers will add them to a team.
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {waiting.map((player) => (
+              <li
+                key={player.playerId}
+                className="rounded-full border border-pitch-700 px-3 py-1.5 text-sm font-semibold"
+              >
+                {player.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {others.length > 0 ? (
         <div className="mt-8">

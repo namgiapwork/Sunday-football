@@ -416,3 +416,28 @@ export async function getSessionDetail(
     noResponse,
   };
 }
+
+/**
+ * Confirmed players who are not on any team — people who signed up after the
+ * teams were picked, waiting for the organiser to place them.
+ */
+export async function listUnassignedConfirmed(sessionId: string): Promise<Participant[]> {
+  const db = supabaseAdmin();
+
+  const [{ data: signups }, { data: placed }] = await Promise.all([
+    db
+      .from("signups")
+      .select("player:players!inner(id, name, avatar_url, is_active)")
+      .eq("session_id", sessionId)
+      .eq("status", "confirmed"),
+    db.from("team_members").select("player_id").eq("session_id", sessionId),
+  ]);
+
+  const assigned = new Set((placed ?? []).map((row) => row.player_id));
+
+  return (signups ?? [])
+    .map((row) => row.player as unknown as { id: string; name: string; avatar_url: string | null; is_active: boolean })
+    .filter((p) => p.is_active && !assigned.has(p.id))
+    .map((p) => ({ playerId: p.id, name: p.name, avatarUrl: p.avatar_url, status: "confirmed" as const }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
