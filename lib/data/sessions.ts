@@ -2,6 +2,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { GeneratorPlayer } from "@/lib/teams/types";
 import type { PositionCode } from "@/lib/teams/positions";
+import { selectUpcoming, UPCOMING_LIMIT, upcomingWindow } from "@/lib/sessions/upcoming";
 import type { SessionRow, SignupStatus, VenueRow } from "@/types/database";
 
 export interface AttendanceSummary {
@@ -163,4 +164,136 @@ export async function getConfirmedPlayersForGeneration(sessionId: string): Promi
   return players
     .map((p) => ({ id: p.id, name: p.name, positions: byPlayer.get(p.id) ?? [] }))
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export interface UpcomingSession {
+  session: SessionWithVenue;
+  summary: AttendanceSummary;
+  mySignup: SignupStatus | null;
+}
+
+/**
+ * The Sundays a player can answer for: the next few inside the four-week window,
+ * each with its own counts and the player's own answer (spec: one list, one tap).
+ */
+export async function listUpcomingSessions(
+  groupId: string,
+  playerId: string,
+  limit = UPCOMING_LIMIT,
+): Promise<UpcomingSession[]> {
+  const db = supabaseAdmin();
+  const { from, to } = upcomingWindow();
+
+  const { data } = await db
+    .from("sessions")
+    .select(`*, venue:venues(${VENUE_FIELDS})`)
+    .eq("group_id", groupId)
+    .gte("date", from)
+    .lte("date", to)
+    .order("date", { ascending: true });
+
+  const sessions = selectUpcoming((data ?? []) as unknown as SessionWithVenue[], new Date(), { limit });
+  if (sessions.length === 0) return [];
+
+  const ids = sessions.map((s) => s.id);
+
+  const [{ data: signups }, { count: invited }] = await Promise.all([
+    db.from("signups").select("session_id, player_id, status").in("session_id", ids),
+    db
+      .from("group_members")
+      .select("id", { count: "exact", head: true })
+      .eq("group_id", groupId)
+      .eq("is_active", true),
+  ]);
+
+  const counts = new Map<string, { confirmed: number; maybe: number; declined: number }>();
+  const mine = new Map<string, SignupStatus>();
+
+  for (const row of signups ?? []) {
+    const tally = counts.get(row.session_id) ?? { confirmed: 0, maybe: 0, declined: 0 };
+    tally[row.status as keyof typeof tally] += 1;
+    counts.set(row.session_id, tally);
+    if (row.player_id === playerId) mine.set(row.session_id, row.status as SignupStatus);
+  }
+
+  const total = invited ?? 0;
+
+  return sessions.map((session) => {
+    const tally = counts.get(session.id) ?? { confirmed: 0, maybe: 0, declined: 0 };
+    return {
+      session,
+      summary: {
+        ...tally,
+        invited: total,
+        noResponse: Math.max(0, total - tally.confirmed - tally.maybe - tally.declined),
+      },
+      mySignup: mine.get(session.id) ?? null,
+    };
+  });
+}
+
+export interface AttendanceCell {
+  status: SignupStatus | null;
+}
+
+export interface AttendanceMatrix {
+  sessions: { id: string; date: string; status: SessionRow["status"] }[];
+  players: {
+    id: string;
+    name: string;
+    cells: Record<string, SignupStatus | null>;
+    played: number;
+  }[];
+}
+
+/**
+ * Who answered what, across recent Sundays. `played` counts only Sundays that
+ * actually happened, so a future "yes" does not inflate anyone's record.
+ */
+export async function getAttendanceMatrix(groupId: string, limit = 10): Promise<AttendanceMatrix> {
+  const db = supabaseAdmin();
+
+  const { data: sessionRows } = await db
+    .from("sessions")
+    .select("id, date, status")
+    .eq("group_id", groupId)
+    .neq("status", "draft")
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  const sessions = (sessionRows ?? []).slice().reverse();
+  if (sessions.length === 0) return { sessions: [], players: [] };
+
+  const [{ data: members }, { data: signups }] = await Promise.all([
+    db
+      .from("group_members")
+      .select("player:players!inner(id, name, is_active)")
+      .eq("group_id", groupId)
+      .eq("is_active", true),
+    db.from("signups").select("session_id, player_id, status").in("session_id", sessions.map((s) => s.id)),
+  ]);
+
+  const byPlayer = new Map<string, Record<string, SignupStatus>>();
+  for (const row of signups ?? []) {
+    const cells = byPlayer.get(row.player_id) ?? {};
+    cells[row.session_id] = row.status as SignupStatus;
+    byPlayer.set(row.player_id, cells);
+  }
+
+  const completed = new Set(sessions.filter((s) => s.status === "completed").map((s) => s.id));
+
+  const players = (members ?? [])
+    .map((m) => m.player as unknown as { id: string; name: string })
+    .map((player) => {
+      const cells = byPlayer.get(player.id) ?? {};
+      return {
+        id: player.id,
+        name: player.name,
+        cells: Object.fromEntries(sessions.map((s) => [s.id, cells[s.id] ?? null])),
+        played: sessions.filter((s) => completed.has(s.id) && cells[s.id] === "confirmed").length,
+      };
+    })
+    .sort((a, b) => b.played - a.played || a.name.localeCompare(b.name));
+
+  return { sessions, players };
 }

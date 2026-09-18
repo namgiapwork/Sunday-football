@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui/alert";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardBody, SectionTitle } from "@/components/ui/card";
 import { StatusButton } from "@/components/sessions/status-button";
+import { CreateSundaysButton } from "./create-sundays-button";
 
 export const metadata = { title: "Admin — Sunday Football" };
 
@@ -124,11 +125,19 @@ export default async function AdminDashboard() {
         </ButtonLink>
       </div>
 
-      <p className="mt-8 text-sm">
-        <Link href="/admin/session/new" className="font-semibold text-lime underline-offset-4 hover:underline">
-          Create another Sunday
-        </Link>
-      </p>
+      <div className="mt-8 border-t border-pitch-800 pt-6">
+        <SectionTitle className="mb-2">Upcoming Sundays</SectionTitle>
+        <p className="mb-3 text-sm text-chalk-dim">
+          Players see the next four Sundays and can answer for any of them, so it is worth keeping the
+          list stocked.
+        </p>
+        <CreateSundaysButton />
+        <p className="mt-3 text-sm">
+          <Link href="/admin/session/new" className="font-semibold text-lime underline-offset-4 hover:underline">
+            Or create one by hand
+          </Link>
+        </p>
+      </div>
     </>
   );
 }

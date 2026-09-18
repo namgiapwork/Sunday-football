@@ -13,7 +13,9 @@ This is **MVP 1** — the first production release described in the spec (§45):
 - Player profiles with position preferences and self-ratings
 - Lightweight PIN sign-in for players, Supabase Auth for organisers
 - Sunday sessions with venue, kickoff and signup deadline
+- Players answer for the **next four Sundays**, not just the nearest one
 - One-tap signup with a live confirmed count
+- Attendance record showing who played which date
 - Admin dashboard that always shows the next thing to do
 - **Automatic team balancing** with manual editing, publishing and sharing
 
@@ -40,7 +42,7 @@ Two rules shape the code:
 
 ```
 app/(auth)     sign in, onboarding
-app/(player)   home, teams, profile
+app/(player)   home (upcoming Sundays), teams, profile
 app/admin      dashboard, players, sessions, team generator
 app/actions    server actions — the only place data is written
 components/    UI, grouped by domain
