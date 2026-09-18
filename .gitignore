@@ -48,3 +48,6 @@ next-env.d.ts
 
 # Supabase account token, never committed.
 .supabase-token
+
+# GitHub token, never committed.
+.github-token
