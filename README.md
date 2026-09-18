@@ -166,11 +166,13 @@ measure, and it recalculates immediately after every manual move.
 
 ## Deploying
 
-1. Push to GitHub.
-2. Import the repository in Vercel.
-3. Add the same environment variables (with `NEXT_PUBLIC_APP_URL` set to the
-   deployment URL).
-4. Every branch gets a preview deployment; `main` deploys production.
+`main` deploys to production through Vercel; every branch gets a preview.
+
+**See [DEPLOYMENT.md](DEPLOYMENT.md)** before standing this up somewhere new. Some
+required configuration lives in the Supabase and Vercel dashboards rather than in
+this repository — auth redirect URLs, and turning off Vercel's Deployment
+Protection. Without those, password reset links break and the site sits behind a
+Vercel login wall.
 
 Before inviting the whole group, work through the production checklist in the
 spec (§91): RLS enabled, admin created, a venue added, and one Sunday run
