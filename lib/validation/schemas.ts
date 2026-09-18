@@ -83,10 +83,18 @@ export const sessionSchema = z
     message: "The end time must be after the start time.",
     path: ["endTime"],
   })
-  .refine((v) => v.signupDeadline <= `${v.date}T${v.startTime}`, {
-    message: "The signup deadline must be before kickoff.",
+  .refine((v) => withinDays(v.date, v.signupDeadline, 14), {
+    message: "The signup deadline should be within a fortnight of the game.",
     path: ["signupDeadline"],
   });
+
+/** Guards against a mistyped year or month rather than enforcing a policy. */
+function withinDays(date: string, deadline: string, days: number): boolean {
+  const game = new Date(`${date}T00:00:00Z`).getTime();
+  const close = new Date(`${deadline}:00Z`).getTime();
+  if (Number.isNaN(game) || Number.isNaN(close)) return false;
+  return Math.abs(close - game) <= days * 24 * 60 * 60 * 1000;
+}
 
 export const venueSchema = z.object({
   name: z.string().trim().min(1, "Give the venue a name.").max(80),

@@ -12,19 +12,23 @@ export interface DatedSession {
 }
 
 /**
- * The window players can respond within: today through four weeks out. Returned
- * as plain YYYY-MM-DD so it can go straight into a date query.
+ * The window players can respond within. It starts *yesterday*, because signup
+ * now runs until the day after a game: on Monday morning you can still correct
+ * whether you actually played on Sunday.
  */
 export function upcomingWindow(today: Date = new Date(), weeks = UPCOMING_WEEKS) {
-  const from = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-  const to = new Date(from);
-  to.setUTCDate(to.getUTCDate() + weeks * 7);
-  return { from: iso(from), to: iso(to) };
+  const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  start.setUTCDate(start.getUTCDate() - 1);
+
+  const to = new Date(start);
+  to.setUTCDate(to.getUTCDate() + weeks * 7 + 1);
+  return { from: iso(start), to: iso(to) };
 }
 
 /**
- * The Sundays a player should see, soonest first. A finished Sunday drops off;
- * a cancelled one stays, because "it's off this week" is information.
+ * The Sundays a player should see, soonest first. Yesterday's game stays while
+ * its signup is still open; a cancelled one stays too, because "it's off this
+ * week" is information. Only drafts are hidden.
  */
 export function selectUpcoming<T extends DatedSession>(
   sessions: T[],
@@ -35,7 +39,7 @@ export function selectUpcoming<T extends DatedSession>(
 
   return sessions
     .filter((s) => s.date >= from && s.date <= to)
-    .filter((s) => s.status !== "completed" && s.status !== "draft")
+    .filter((s) => s.status !== "draft")
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, limit);
 }

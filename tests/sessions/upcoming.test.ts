@@ -8,8 +8,8 @@ const TODAY = new Date("2026-09-18T09:00:00Z");
 const session = (date: string, status: SessionStatus = "signup_open") => ({ date, status });
 
 describe("upcomingWindow", () => {
-  it("runs from today to four weeks out", () => {
-    expect(upcomingWindow(TODAY)).toEqual({ from: "2026-09-18", to: "2026-10-16" });
+  it("starts yesterday so a played Sunday is still correctable", () => {
+    expect(upcomingWindow(TODAY)).toEqual({ from: "2026-09-17", to: "2026-10-16" });
   });
 
   it("can be asked for a different horizon", () => {
@@ -40,8 +40,14 @@ describe("selectUpcoming", () => {
     expect(selectUpcoming(all, TODAY).map((s) => s.date)).not.toContain("2026-10-18");
   });
 
-  it("drops Sundays that have been played", () => {
+  it("drops Sundays that are well past", () => {
     expect(selectUpcoming(all, TODAY).map((s) => s.date)).not.toContain("2026-09-13");
+  });
+
+  it("keeps yesterday's game so attendance can still be corrected", () => {
+    const monday = new Date("2026-09-21T09:00:00Z");
+    const played = [session("2026-09-20", "completed"), session("2026-09-27")];
+    expect(selectUpcoming(played, monday).map((s) => s.date)).toEqual(["2026-09-20", "2026-09-27"]);
   });
 
   it("keeps a cancelled Sunday, because players need to know it is off", () => {

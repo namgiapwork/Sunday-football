@@ -45,3 +45,6 @@ next-env.d.ts
 
 # Local deploy credential, never committed.
 .vercel-token
+
+# Supabase account token, never committed.
+.supabase-token

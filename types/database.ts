@@ -22,7 +22,7 @@ export type GroupRow = {
   timezone: string;
   default_start_time: string;
   default_end_time: string;
-  default_signup_deadline_dow: number;
+  default_signup_close_days_after: number;
   default_signup_deadline_time: string;
   default_venue_id: string | null;
   default_max_players: number | null;

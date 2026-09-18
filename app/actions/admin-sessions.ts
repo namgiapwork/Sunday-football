@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth/current-user";
 import { getGroup } from "@/lib/data/groups";
 import { getSession } from "@/lib/data/sessions";
 import { assertTransition, type SessionStatus } from "@/lib/sessions/state";
+import { defaultSignupDeadline } from "@/lib/sessions/deadline";
 import { missingSundays, UPCOMING_LIMIT } from "@/lib/sessions/upcoming";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { localToUtcIso } from "@/lib/time/group-time";
@@ -174,7 +175,7 @@ export async function createUpcomingSundaysAction(
       start_time: group.default_start_time,
       end_time: group.default_end_time,
       venue_id: group.default_venue_id,
-      signup_deadline: deadlineFor(date, group),
+      signup_deadline: defaultSignupDeadline(date, group),
       status: "signup_open" as const,
       created_by: admin.player.id,
     }));
@@ -194,15 +195,3 @@ export async function createUpcomingSundaysAction(
   }
 }
 
-/** The group's deadline weekday and time, on the week leading up to `date`. */
-function deadlineFor(
-  date: string,
-  group: { default_signup_deadline_dow: number; default_signup_deadline_time: string; timezone: string },
-): string {
-  const sunday = new Date(`${date}T00:00:00Z`);
-  const daysBack = (7 + 0 - group.default_signup_deadline_dow) % 7 || 7;
-  sunday.setUTCDate(sunday.getUTCDate() - daysBack);
-
-  const local = `${sunday.toISOString().slice(0, 10)}T${group.default_signup_deadline_time.slice(0, 5)}`;
-  return localToUtcIso(local, group.timezone);
-}

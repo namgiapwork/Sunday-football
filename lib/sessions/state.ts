@@ -65,15 +65,20 @@ export function isPast(status: SessionStatus): boolean {
   return status === "completed" || status === "cancelled";
 }
 
+/** Statuses where the organiser has deliberately stopped taking answers. */
+const SIGNUP_BLOCKED: SessionStatus[] = ["draft", "signup_closed", "cancelled"];
+
 /**
- * Signup is open only while the session says so *and* the deadline has not passed.
- * The status alone is not enough — nobody closes it at 18:00 on a Saturday.
+ * Signup runs until the deadline, which now falls *after* the game. Generating or
+ * publishing teams no longer shuts it: somebody dropping out on the morning, or
+ * turning up unannounced, still needs recording. The organiser can close it early
+ * by moving the session to `signup_closed`.
  */
 export function signupIsOpen(
   session: { status: SessionStatus; signup_deadline: string },
   now: Date = new Date(),
 ): boolean {
-  if (session.status !== "signup_open") return false;
+  if (SIGNUP_BLOCKED.includes(session.status)) return false;
   return now.getTime() < new Date(session.signup_deadline).getTime();
 }
 
@@ -84,9 +89,8 @@ export function signupClosedReason(
   if (signupIsOpen(session, now)) return null;
   if (session.status === "cancelled") return "This Sunday has been cancelled.";
   if (session.status === "draft") return "Signup has not opened yet.";
-  if (session.status === "signup_open") return "The signup deadline has passed.";
-  if (isPast(session.status)) return "This Sunday is over.";
-  return "Signup is closed.";
+  if (session.status === "signup_closed") return "The organisers have closed signup.";
+  return "Signup has closed for this Sunday.";
 }
 
 export interface NextAdminAction {

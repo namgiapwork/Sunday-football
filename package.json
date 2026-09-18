@@ -15,7 +15,9 @@
     "db:reset": "tsx scripts/db.ts reset",
     "setup": "node scripts/set-env.mjs",
     "setup:db": "node scripts/set-db-url.mjs",
-    "setup:vercel": "node scripts/set-vercel-token.mjs"
+    "setup:vercel": "node scripts/set-vercel-token.mjs",
+    "setup:supabase": "node scripts/set-supabase-token.mjs",
+    "db:apply": "tsx scripts/db-api.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

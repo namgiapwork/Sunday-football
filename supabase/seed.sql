@@ -14,9 +14,9 @@ begin;
 -- ---------------------------------------------------------------------------
 
 insert into groups (id, name, slug, timezone, default_start_time, default_end_time,
-                    default_signup_deadline_dow, default_signup_deadline_time)
+                    default_signup_close_days_after, default_signup_deadline_time)
 values ('11111111-1111-4111-8111-111111111111', 'Sunday Football', 'sunday-football',
-        'Europe/Amsterdam', '18:00', '20:00', 6, '18:00');
+        'Europe/Amsterdam', '18:00', '20:00', 1, '23:59');
 
 insert into venues (id, group_id, name, address, maps_url, notes)
 values
@@ -120,7 +120,7 @@ values (
   '22222222-2222-4222-8222-222222222221',
   'Pitch 3',
   'Sportpark Rotterdam', 'Sportlaan 12, 3062 Rotterdam', 'Pitch 3',
-  (date_trunc('week', current_date)::date - 2 + time '18:00') at time zone 'Europe/Amsterdam',
+  (date_trunc('week', current_date)::date + time '23:59') at time zone 'Europe/Amsterdam',
   'completed',
   '33333333-3333-4333-8333-000000000001'
 );
@@ -232,7 +232,7 @@ values (
   '18:00', '20:00',
   '22222222-2222-4222-8222-222222222221',
   'Pitch 3',
-  (date_trunc('week', current_date)::date + 5 + time '18:00') at time zone 'Europe/Amsterdam',
+  (date_trunc('week', current_date)::date + 7 + time '23:59') at time zone 'Europe/Amsterdam',
   'signup_open',
   '33333333-3333-4333-8333-000000000001'
 );

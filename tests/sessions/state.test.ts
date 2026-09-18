@@ -75,22 +75,43 @@ describe("signup window", () => {
     expect(signupClosedReason(open, BEFORE)).toBeNull();
   });
 
-  it("closes itself once the deadline passes, whatever the status says", () => {
+  it("closes once the deadline passes", () => {
     expect(signupIsOpen(open, AFTER)).toBe(false);
-    expect(signupClosedReason(open, AFTER)).toMatch(/deadline has passed/i);
+    expect(signupClosedReason(open, AFTER)).toMatch(/closed/i);
   });
 
-  it("is shut for every other status", () => {
-    for (const status of SESSION_STATUSES) {
-      if (status === "signup_open") continue;
+  it("stays open once teams are generated or published", () => {
+    // Somebody dropping out on the morning still has to be recorded.
+    for (const status of ["teams_generated", "teams_published", "in_progress"] as const) {
+      expect(signupIsOpen({ status, signup_deadline: DEADLINE }, BEFORE), status).toBe(true);
+    }
+  });
+
+  it("stays open after the game until the deadline, so attendance can be corrected", () => {
+    expect(signupIsOpen({ status: "completed", signup_deadline: DEADLINE }, BEFORE)).toBe(true);
+  });
+
+  it("is shut when the organiser closes it, cancels, or has not opened it", () => {
+    for (const status of ["draft", "signup_closed", "cancelled"] as const) {
       expect(signupIsOpen({ status, signup_deadline: DEADLINE }, BEFORE), status).toBe(false);
     }
   });
 
-  it("explains a cancelled Sunday rather than a closed deadline", () => {
-    expect(signupClosedReason({ status: "cancelled", signup_deadline: DEADLINE }, BEFORE)).toMatch(
-      /cancelled/i,
+  it("explains why it is shut", () => {
+    expect(signupClosedReason({ status: "cancelled", signup_deadline: DEADLINE }, BEFORE)).toMatch(/cancelled/i);
+    expect(signupClosedReason({ status: "draft", signup_deadline: DEADLINE }, BEFORE)).toMatch(/not opened/i);
+    expect(signupClosedReason({ status: "signup_closed", signup_deadline: DEADLINE }, BEFORE)).toMatch(
+      /organisers have closed/i,
     );
+  });
+
+  it("covers every status one way or the other", () => {
+    for (const status of SESSION_STATUSES) {
+      const session = { status, signup_deadline: DEADLINE };
+      const isOpen = signupIsOpen(session, BEFORE);
+      expect(typeof isOpen).toBe("boolean");
+      expect(signupClosedReason(session, BEFORE) === null).toBe(isOpen);
+    }
   });
 });
 
