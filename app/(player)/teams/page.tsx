@@ -22,7 +22,7 @@ export default async function TeamsPage() {
 
   if (!teamsArePublic(session.status)) {
     return (
-      <Empty message="Teams have not been published yet. You will see them here as soon as the organisers share them." />
+      <Empty message="Teams are not ready yet. They appear here the moment the organisers finish picking them, usually the day before." />
     );
   }
 

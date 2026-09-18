@@ -12,7 +12,9 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx scripts/db.ts migrate",
     "db:seed": "tsx scripts/db.ts seed",
-    "db:reset": "tsx scripts/db.ts reset"
+    "db:reset": "tsx scripts/db.ts reset",
+    "setup": "node scripts/set-env.mjs",
+    "setup:db": "node scripts/set-db-url.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

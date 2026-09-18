@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import { AuthError } from "@/lib/auth/errors";
 import { readPlayerSession } from "@/lib/auth/session";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -99,6 +100,24 @@ export async function requireAdmin(): Promise<CurrentUser> {
         : "Admin actions need the email login, not a PIN.",
     );
   }
+  return user;
+}
+
+/**
+ * Page-level guards. Server actions throw so the form can show the message;
+ * pages redirect instead, because an unauthenticated visitor wants the sign-in
+ * screen, not a stack trace.
+ */
+export async function requirePlayerPage(): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+  return user;
+}
+
+export async function requireAdminPage(): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user?.strongAuth) redirect("/admin-login");
+  if (user.role !== "admin") redirect("/home");
   return user;
 }
 
