@@ -7,6 +7,7 @@ import { dummyVerify, hashPin, LOCKOUT_MINUTES, MAX_FAILED_ATTEMPTS, verifyPin }
 import { getGroup } from "@/lib/data/groups";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
+import { publicEnv } from "@/lib/env";
 import { joinSchema, loginSchema, positionPreferencesSchema } from "@/lib/validation/schemas";
 import { toActionState, type ActionState } from "@/lib/actions/result";
 
@@ -165,4 +166,74 @@ export async function adminLoginAction(_prev: ActionState, formData: FormData): 
   }
 
   redirect("/admin");
+}
+
+const resetRequestSchema = z.object({
+  email: z.email("Enter the email address you sign in with."),
+});
+
+/**
+ * Sends the organiser a password reset link. Always reports success: whether an
+ * address has an account is not something an anonymous visitor should learn.
+ */
+export async function requestPasswordResetAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const { email } = resetRequestSchema.parse({ email: String(formData.get("email") ?? "") });
+
+    const supabase = await supabaseServer();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${publicEnv.appUrl}/auth/confirm?next=/admin-reset`,
+    });
+
+    if (error) console.error("[reset]", error);
+
+    return {
+      ok: true,
+      message: "If that address has an account, a reset link is on its way. Check your inbox and spam.",
+    };
+  } catch (error) {
+    return toActionState(error);
+  }
+}
+
+const newPasswordSchema = z
+  .object({
+    password: z.string().min(8, "Use at least 8 characters."),
+    confirm: z.string(),
+  })
+  .refine((v) => v.password === v.confirm, {
+    message: "The two passwords do not match.",
+    path: ["confirm"],
+  });
+
+/** Sets a new password using the recovery session from the emailed link. */
+export async function setPasswordAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const input = newPasswordSchema.parse({
+      password: String(formData.get("password") ?? ""),
+      confirm: String(formData.get("confirm") ?? ""),
+    });
+
+    const supabase = await supabaseServer();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return {
+        ok: false,
+        error: "That reset link has expired. Request a new one and use it within the hour.",
+      };
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: input.password });
+    if (error) return { ok: false, error: error.message };
+
+    return { ok: true, message: "Password changed. You can sign in with it now." };
+  } catch (error) {
+    return toActionState(error);
+  }
 }
