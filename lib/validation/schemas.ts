@@ -1,0 +1,112 @@
+import { z } from "zod";
+import { POSITION_CODES } from "@/lib/teams/positions";
+import { SESSION_STATUSES } from "@/lib/sessions/state";
+
+export const pinSchema = z
+  .string()
+  .regex(/^\d{4}$/, "Your PIN must be exactly 4 digits.");
+
+export const playerNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Enter a name.")
+  .max(40, "That name is too long — 40 characters at most.");
+
+export const positionPreferenceSchema = z.object({
+  position: z.enum(POSITION_CODES),
+  preferenceRank: z.number().int().min(1).max(3),
+  rating: z.number().int().min(1, "Rate yourself from 1 to 10.").max(10, "Rate yourself from 1 to 10."),
+});
+
+/** Up to three positions, each ranked once, each position chosen once. */
+export const positionPreferencesSchema = z
+  .array(positionPreferenceSchema)
+  .max(3, "Choose at most three positions.")
+  .superRefine((positions, ctx) => {
+    const ranks = new Set<number>();
+    const codes = new Set<string>();
+    for (const p of positions) {
+      if (ranks.has(p.preferenceRank)) {
+        ctx.addIssue({ code: "custom", message: "Each choice can only be used once." });
+      }
+      if (codes.has(p.position)) {
+        ctx.addIssue({ code: "custom", message: "Choose a different position for each choice." });
+      }
+      ranks.add(p.preferenceRank);
+      codes.add(p.position);
+    }
+  });
+
+export const joinSchema = z.object({
+  name: playerNameSchema,
+  pin: pinSchema,
+  positions: positionPreferencesSchema,
+});
+
+export const loginSchema = z.object({
+  playerId: z.uuid("Select your name."),
+  pin: pinSchema,
+});
+
+export const profileSchema = z.object({
+  name: playerNameSchema,
+  positions: positionPreferencesSchema,
+});
+
+export const changePinSchema = z
+  .object({
+    currentPin: pinSchema,
+    newPin: pinSchema,
+    confirmPin: pinSchema,
+  })
+  .refine((v) => v.newPin === v.confirmPin, {
+    message: "The two new PINs do not match.",
+    path: ["confirmPin"],
+  });
+
+export const signupStatusSchema = z.enum(["confirmed", "maybe", "declined"]);
+
+const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a time like 18:00.");
+
+export const sessionSchema = z
+  .object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date."),
+    startTime: timeSchema,
+    endTime: timeSchema,
+    venueId: z.uuid("Choose a venue.").nullable(),
+    locationNotes: z.string().trim().max(200).optional().or(z.literal("")),
+    note: z.string().trim().max(500).optional().or(z.literal("")),
+    /** Local wall-clock deadline, interpreted in the group timezone. */
+    signupDeadline: z.string().regex(/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/, "Pick a deadline."),
+  })
+  .refine((v) => v.startTime < v.endTime, {
+    message: "The end time must be after the start time.",
+    path: ["endTime"],
+  })
+  .refine((v) => v.signupDeadline <= `${v.date}T${v.startTime}`, {
+    message: "The signup deadline must be before kickoff.",
+    path: ["signupDeadline"],
+  });
+
+export const venueSchema = z.object({
+  name: z.string().trim().min(1, "Give the venue a name.").max(80),
+  address: z.string().trim().max(200).optional().or(z.literal("")),
+  mapsUrl: z.url("That does not look like a link.").optional().or(z.literal("")),
+  notes: z.string().trim().max(200).optional().or(z.literal("")),
+});
+
+export const generateTeamsSchema = z.object({
+  teamCount: z
+    .number()
+    .int()
+    .min(2, "Choose at least two teams.")
+    .max(6, "Six teams is the most this supports."),
+  balanceAbility: z.boolean().default(true),
+  balancePositions: z.boolean().default(true),
+  respectPreferences: z.boolean().default(true),
+  balanceGoalkeepers: z.boolean().default(true),
+});
+
+export const sessionStatusSchema = z.enum(SESSION_STATUSES);
+
+export const memberRoleSchema = z.enum(["player", "scorekeeper", "admin"]);
