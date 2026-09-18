@@ -136,8 +136,6 @@ function SessionCard({
   const { session, summary, mySignup, participants } = entry;
   const [state, action] = useActionState(setSignupAction, IDLE);
   const [pressed, setPressed] = useState<SignupStatus | null>(null);
-  // Opened by default on the nearest Sunday once you have answered.
-  const [showPlayers, setShowPlayers] = useState(featured && mySignup !== null);
 
   const open = signupIsOpen(session);
   const cancelled = session.status === "cancelled";
@@ -169,47 +167,19 @@ function SessionCard({
         </div>
       ) : (
         <>
-          <button
-            type="button"
-            onClick={() => setShowPlayers((v) => !v)}
-            aria-expanded={showPlayers}
-            disabled={participants.length === 0}
-            className="flex w-full items-baseline gap-2 px-5 pt-3 text-left disabled:cursor-default"
+          <Link
+            href={`/sunday/${session.id}`}
+            className="flex items-center gap-3 px-5 pt-3 hover:opacity-80"
           >
             <span className={`tabular font-black ${featured ? "text-4xl" : "text-2xl"}`}>
               {summary.confirmed}
             </span>
             <span className="text-sm font-semibold text-chalk-dim">playing</span>
-            {participants.length > 0 ? (
-              <span aria-hidden className={`text-chalk-faint transition-transform ${showPlayers ? "rotate-180" : ""}`}>
-                ▾
-              </span>
-            ) : null}
-            <span className="ml-auto text-xs text-chalk-faint">
-              {summary.maybe} maybe · {summary.declined} out
+            {participants.length > 0 ? <AvatarRow people={participants} /> : null}
+            <span aria-hidden className="ml-auto text-chalk-faint">
+              ›
             </span>
-          </button>
-
-          {showPlayers && participants.length > 0 ? (
-            <ul className="flex flex-wrap gap-2 px-5 pt-3">
-              {participants.map((player) => (
-                <li
-                  key={player.playerId}
-                  className={`flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 ${
-                    player.status === "maybe"
-                      ? "border-kit-yellow/30 opacity-70"
-                      : "border-pitch-700"
-                  }`}
-                >
-                  <PlayerAvatar name={player.name} avatarUrl={player.avatarUrl} size="sm" />
-                  <span className="text-sm font-semibold">{player.name}</span>
-                  {player.status === "maybe" ? (
-                    <span className="text-[10px] font-bold text-kit-yellow">maybe</span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          </Link>
 
           {open ? (
             <form action={action} className="px-5 pt-3 pb-4">
@@ -311,5 +281,26 @@ function Choice({
     >
       {pending && pressed === value ? "…" : children}
     </button>
+  );
+}
+
+/** Up to five faces plus a count — the full list lives on the Sunday's own page. */
+function AvatarRow({ people }: { people: Participant[] }) {
+  const shown = people.slice(0, 5);
+  const rest = people.length - shown.length;
+
+  return (
+    <span className="ml-1 flex items-center">
+      {shown.map((person, index) => (
+        <span key={person.playerId} className={index > 0 ? "-ml-2" : ""}>
+          <PlayerAvatar name={person.name} avatarUrl={person.avatarUrl} size="sm" />
+        </span>
+      ))}
+      {rest > 0 ? (
+        <span className="tabular -ml-2 inline-flex size-8 items-center justify-center rounded-full bg-pitch-700 text-[11px] font-bold text-chalk-dim">
+          +{rest}
+        </span>
+      ) : null}
+    </span>
   );
 }

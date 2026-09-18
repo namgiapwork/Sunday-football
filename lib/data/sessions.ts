@@ -354,3 +354,65 @@ export async function getAttendanceMatrix(groupId: string, limit = 10): Promise<
 
   return { sessions, players };
 }
+
+export interface SessionDetail {
+  session: SessionWithVenue;
+  summary: AttendanceSummary;
+  mySignup: SignupStatus | null;
+  confirmed: Participant[];
+  maybe: Participant[];
+  declined: Participant[];
+  /** Active members who have not answered at all. */
+  noResponse: RosterEntry[];
+}
+
+/** Everything about one Sunday, including who has not replied. */
+export async function getSessionDetail(
+  sessionId: string,
+  groupId: string,
+  playerId: string,
+): Promise<SessionDetail | null> {
+  const session = await getSession(sessionId);
+  if (!session || session.group_id !== groupId) return null;
+
+  const db = supabaseAdmin();
+  const [{ data: signups }, roster] = await Promise.all([
+    db.from("signups").select("player_id, status").eq("session_id", sessionId),
+    listRoster(groupId),
+  ]);
+
+  const byId = new Map(roster.map((p) => [p.id, p]));
+  const answered = new Map<string, SignupStatus>();
+  for (const row of signups ?? []) answered.set(row.player_id, row.status as SignupStatus);
+
+  const group = (status: SignupStatus): Participant[] =>
+    [...answered.entries()]
+      .filter(([, value]) => value === status)
+      .map(([id]) => byId.get(id))
+      .filter((p): p is RosterEntry => Boolean(p))
+      .map((p) => ({ playerId: p.id, name: p.name, avatarUrl: p.avatarUrl, status }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+  const confirmed = group("confirmed");
+  const maybe = group("maybe");
+  const declined = group("declined");
+  const noResponse = roster
+    .filter((p) => !answered.has(p.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    session,
+    summary: {
+      confirmed: confirmed.length,
+      maybe: maybe.length,
+      declined: declined.length,
+      invited: roster.length,
+      noResponse: noResponse.length,
+    },
+    mySignup: answered.get(playerId) ?? null,
+    confirmed,
+    maybe,
+    declined,
+    noResponse,
+  };
+}
