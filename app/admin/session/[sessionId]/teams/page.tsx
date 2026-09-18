@@ -16,6 +16,7 @@ import { PublishControls } from "@/components/teams/publish-controls";
 import { RevealControls } from "@/components/teams/reveal-controls";
 import { ShareTeams } from "@/components/teams/share-teams";
 import { TeamBalanceIndicator } from "@/components/teams/team-balance-indicator";
+import { AssignLatecomers } from "@/components/teams/assign-latecomers";
 import { TeamEditor } from "@/components/teams/team-editor";
 
 export default async function TeamGeneratorPage({
@@ -77,18 +78,9 @@ export default async function TeamGeneratorPage({
         </div>
       ) : null}
 
-      {latecomers.length > 0 ? (
+      {latecomers.length > 0 && teams.length > 0 ? (
         <div className="mb-6">
-          <Alert tone="warning">
-            {latecomers.length === 1
-              ? `${latecomers[0].name} joined after the teams were generated.`
-              : `${latecomers.length} players joined after the teams were generated: ${latecomers
-                  .map((p) => p.name)
-                  .join(", ")}.`}{" "}
-            {published
-              ? "Move somebody manually, or hide the teams and regenerate."
-              : "Regenerate to include them, or leave the teams as they are."}
-          </Alert>
+          <AssignLatecomers players={latecomers.map((p) => ({ id: p.id, name: p.name }))} teams={teams} />
         </div>
       ) : null}
 

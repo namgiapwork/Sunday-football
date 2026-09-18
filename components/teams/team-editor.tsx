@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import {
   movePlayerAction,
+  removeFromTeamAction,
   setAssignedPositionAction,
   setMemberAvailabilityAction,
 } from "@/app/actions/admin-teams";
@@ -94,11 +95,13 @@ function MemberActions({
   const [moveState, moveAction] = useActionState(movePlayerAction, IDLE);
   const [positionState, positionAction] = useActionState(setAssignedPositionAction, IDLE);
   const [availabilityState, availabilityAction] = useActionState(setMemberAvailabilityAction, IDLE);
+  const [removeState, removeAction] = useActionState(removeFromTeamAction, IDLE);
 
   const error =
     (moveState.ok === false && moveState.error) ||
     (positionState.ok === false && positionState.error) ||
     (availabilityState.ok === false && availabilityState.error) ||
+    (removeState.ok === false && removeState.error) ||
     null;
 
   return (
@@ -149,13 +152,27 @@ function MemberActions({
         </SubmitButton>
       </form>
 
-      <form action={availabilityAction} className="mt-4">
-        <input type="hidden" name="memberId" value={member.id} />
-        <input type="hidden" name="available" value={member.isAvailable ? "false" : "true"} />
-        <SubmitButton size="sm" variant={member.isAvailable ? "danger" : "secondary"} pendingLabel="…">
-          {member.isAvailable ? "Mark as dropped out" : "Mark as playing again"}
-        </SubmitButton>
-      </form>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <form action={availabilityAction}>
+          <input type="hidden" name="memberId" value={member.id} />
+          <input type="hidden" name="available" value={member.isAvailable ? "false" : "true"} />
+          <SubmitButton size="sm" variant={member.isAvailable ? "danger" : "secondary"} pendingLabel="…">
+            {member.isAvailable ? "Mark as dropped out" : "Mark as playing again"}
+          </SubmitButton>
+        </form>
+
+        <form
+          action={removeAction}
+          onSubmit={(event) => {
+            if (!window.confirm(`Take ${member.name} off the team sheet?`)) event.preventDefault();
+          }}
+        >
+          <input type="hidden" name="memberId" value={member.id} />
+          <SubmitButton size="sm" variant="ghost" pendingLabel="…">
+            Take off team sheet
+          </SubmitButton>
+        </form>
+      </div>
 
       {error ? (
         <div className="mt-3">

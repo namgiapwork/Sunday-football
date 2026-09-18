@@ -130,6 +130,11 @@ const moveSchema = z.object({
   targetTeamId: z.uuid(),
 });
 
+const addSchema = z.object({
+  playerId: z.uuid(),
+  targetTeamId: z.uuid(),
+});
+
 export async function movePlayerAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   try {
     const admin = await requireAdmin();
@@ -334,6 +339,108 @@ export async function setTeamsRevealAction(_prev: ActionState, formData: FormDat
       ok: true,
       message: when === "now" ? "Teams are visible to players now." : "Reveal put back to the usual time.",
     };
+  } catch (error) {
+    return toActionState(error);
+  }
+}
+
+/**
+ * Slots a player into an existing team without touching anybody else — the fix
+ * for somebody signing up after teams went out (spec §27: assign manually,
+ * rather than regenerating and reshuffling everyone).
+ */
+export async function addPlayerToTeamAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await requireAdmin();
+    const input = addSchema.parse({
+      playerId: String(formData.get("playerId") ?? ""),
+      targetTeamId: String(formData.get("targetTeamId") ?? ""),
+    });
+
+    const db = supabaseAdmin();
+
+    const { data: team } = await db
+      .from("teams")
+      .select("id, session_id, name")
+      .eq("id", input.targetTeamId)
+      .maybeSingle();
+
+    if (!team) return { ok: false, error: "That team no longer exists." };
+
+    const { data: signup } = await db
+      .from("signups")
+      .select("status, player:players!inner(name)")
+      .eq("session_id", team.session_id)
+      .eq("player_id", input.playerId)
+      .maybeSingle();
+
+    if (!signup) return { ok: false, error: "They have not answered for this Sunday." };
+
+    const { data: existing } = await db
+      .from("team_members")
+      .select("id")
+      .eq("session_id", team.session_id)
+      .eq("player_id", input.playerId)
+      .maybeSingle();
+
+    if (existing) return { ok: false, error: "They are already on a team this Sunday." };
+
+    const { data: position } = await db
+      .from("player_positions")
+      .select("position, preference_rank, effective_rating")
+      .eq("player_id", input.playerId)
+      .order("preference_rank")
+      .limit(1)
+      .maybeSingle();
+
+    const { error } = await db.from("team_members").insert({
+      team_id: team.id,
+      session_id: team.session_id,
+      player_id: input.playerId,
+      assigned_position: position?.position ?? "CM",
+      position_rating_snapshot: position ? Number(position.effective_rating) : null,
+      preference_rank_snapshot: position?.preference_rank ?? null,
+      is_available: signup.status === "confirmed",
+    });
+
+    if (error) throw error;
+
+    const name = (signup.player as unknown as { name: string })?.name ?? "Player";
+
+    revalidatePath(`/admin/session/${team.session_id}/teams`);
+    revalidatePath("/teams");
+    return { ok: true, message: `${name} added to ${team.name}.` };
+  } catch (error) {
+    return toActionState(error);
+  }
+}
+
+/**
+ * Takes somebody off the team sheet entirely — for a dropout you want to replace
+ * rather than leave struck through. Their signup is untouched.
+ */
+export async function removeFromTeamAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await requireAdmin();
+    const memberId = String(formData.get("memberId") ?? "");
+
+    const db = supabaseAdmin();
+    const { data: member } = await db
+      .from("team_members")
+      .select("id, session_id, player:players!inner(name)")
+      .eq("id", memberId)
+      .maybeSingle();
+
+    if (!member) return { ok: false, error: "They are no longer on a team." };
+
+    const { error } = await db.from("team_members").delete().eq("id", memberId);
+    if (error) throw error;
+
+    const name = (member.player as unknown as { name: string })?.name ?? "Player";
+
+    revalidatePath(`/admin/session/${member.session_id}/teams`);
+    revalidatePath("/teams");
+    return { ok: true, message: `${name} taken off the team sheet.` };
   } catch (error) {
     return toActionState(error);
   }
