@@ -1,5 +1,6 @@
 import { requirePlayer } from "@/lib/auth/current-user";
 import { getPlayerProfile } from "@/lib/data/players";
+import { AvatarForm } from "./avatar-form";
 import { ProfileForm } from "./profile-form";
 import { ChangePinForm } from "./change-pin-form";
 import { LogoutButton } from "./logout-button";
@@ -18,6 +19,8 @@ export default async function ProfilePage() {
         Your positions and ratings are used whenever teams get picked next — including this Sunday, if the
         teams are not out yet. Teams that have already gone up keep the ratings they were picked with.
       </p>
+
+      <AvatarForm name={user.player.name} avatarUrl={profile?.avatar_url ?? null} />
 
       <ProfileForm
         name={user.player.name}

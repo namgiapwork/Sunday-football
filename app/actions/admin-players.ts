@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { hashPin } from "@/lib/auth/pin";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { clearAvatar } from "@/lib/players/avatar-storage";
 import { canDeletePlayer } from "@/lib/players/deletable";
 import { memberRoleSchema, pinSchema } from "@/lib/validation/schemas";
 import { toActionState, type ActionState } from "@/lib/actions/result";
@@ -161,6 +162,20 @@ export async function deletePlayerAction(_prev: ActionState, formData: FormData)
     revalidatePath("/admin/players");
     revalidatePath("/home");
     return { ok: true, message: `${player.name} has been removed.` };
+  } catch (error) {
+    return toActionState(error);
+  }
+}
+
+export async function removePlayerAvatarAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await requireAdmin();
+    const playerId = String(formData.get("playerId") ?? "");
+
+    await clearAvatar(playerId);
+
+    revalidatePath("/", "layout");
+    return { ok: true, message: "Picture removed." };
   } catch (error) {
     return toActionState(error);
   }

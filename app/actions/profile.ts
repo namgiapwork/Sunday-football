@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requirePlayer } from "@/lib/auth/current-user";
 import { hashPin, verifyPin } from "@/lib/auth/pin";
+import { clearAvatar, storeAvatar } from "@/lib/players/avatar-storage";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { changePinSchema, positionPreferencesSchema, profileSchema } from "@/lib/validation/schemas";
 import { toActionState, type ActionState } from "@/lib/actions/result";
@@ -80,6 +81,36 @@ export async function changePinAction(_prev: ActionState, formData: FormData): P
       .eq("player_id", user.player.id);
 
     return { ok: true, message: "PIN changed." };
+  } catch (error) {
+    return toActionState(error);
+  }
+}
+
+function revalidateAvatar(playerId: string) {
+  revalidatePath("/", "layout");
+  revalidatePath(`/player/${playerId}`);
+}
+
+export async function updateAvatarAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await requirePlayer();
+    const file = formData.get("avatar");
+    if (!(file instanceof File)) return { ok: false, error: "Choose a picture first." };
+
+    await storeAvatar(user.player.id, file);
+    revalidateAvatar(user.player.id);
+    return { ok: true, message: "Picture updated." };
+  } catch (error) {
+    return toActionState(error);
+  }
+}
+
+export async function removeAvatarAction(_prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try {
+    const user = await requirePlayer();
+    await clearAvatar(user.player.id);
+    revalidateAvatar(user.player.id);
+    return { ok: true, message: "Picture removed." };
   } catch (error) {
     return toActionState(error);
   }
