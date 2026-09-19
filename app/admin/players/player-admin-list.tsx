@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import {
   deletePlayerAction,
+  removePlayerAvatarAction,
   resetPinAction,
   setPlayerActiveAction,
   setRoleAction,
@@ -101,12 +102,14 @@ function PlayerActions({ player, isSelf }: { player: AdminPlayer; isSelf: boolea
   const [pinState, pinAction] = useActionState(resetPinAction, IDLE);
   const [activeState, activeAction] = useActionState(setPlayerActiveAction, IDLE);
   const [deleteState, deleteAction] = useActionState(deletePlayerAction, IDLE);
+  const [avatarState, avatarAction] = useActionState(removePlayerAvatarAction, IDLE);
 
   const message =
     (roleState.ok === true && roleState.message) ||
     (pinState.ok === true && pinState.message) ||
     (activeState.ok === true && activeState.message) ||
     (deleteState.ok === true && deleteState.message) ||
+    (avatarState.ok === true && avatarState.message) ||
     null;
 
   const error =
@@ -114,6 +117,7 @@ function PlayerActions({ player, isSelf }: { player: AdminPlayer; isSelf: boolea
     (pinState.ok === false && pinState.error) ||
     (activeState.ok === false && activeState.error) ||
     (deleteState.ok === false && deleteState.error) ||
+    (avatarState.ok === false && avatarState.error) ||
     null;
 
   return (
@@ -176,6 +180,15 @@ function PlayerActions({ player, isSelf }: { player: AdminPlayer; isSelf: boolea
           Reset
         </SubmitButton>
       </form>
+
+      {player.avatarUrl ? (
+        <form action={avatarAction} className="mb-4">
+          <input type="hidden" name="playerId" value={player.id} />
+          <SubmitButton size="sm" variant="secondary" pendingLabel="…">
+            Remove picture
+          </SubmitButton>
+        </form>
+      ) : null}
 
       {!isSelf ? (
         <div className="flex flex-wrap gap-3">
