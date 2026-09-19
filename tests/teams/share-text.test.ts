@@ -12,6 +12,7 @@ function member(name: string, position: TeamView["members"][number]["assignedPos
     ratingSnapshot: 8,
     preferenceRank: 1,
     isAvailable: available,
+    lineupSlot: null,
   };
 }
 

@@ -13,6 +13,8 @@ export interface TeamMemberView {
   ratingSnapshot: number | null;
   preferenceRank: number | null;
   isAvailable: boolean;
+  /** 0-7 on the tactics board, or null for a substitute (see lib/teams/formation.ts). */
+  lineupSlot: number | null;
 }
 
 export interface TeamView extends TeamRow {
@@ -38,7 +40,7 @@ export async function getTeams(sessionId: string, includeRatings = false): Promi
   const { data: members } = await db
     .from("team_members")
     .select(
-      "id, team_id, player_id, assigned_position, position_rating_snapshot, preference_rank_snapshot, is_available, created_at, player:players!inner(id, name, avatar_url)",
+      "id, team_id, player_id, assigned_position, position_rating_snapshot, preference_rank_snapshot, is_available, lineup_slot, created_at, player:players!inner(id, name, avatar_url)",
     )
     .eq("session_id", sessionId)
     .order("created_at");
@@ -56,6 +58,7 @@ export async function getTeams(sessionId: string, includeRatings = false): Promi
       ratingSnapshot: includeRatings ? Number(row.position_rating_snapshot ?? 0) || null : null,
       preferenceRank: row.preference_rank_snapshot,
       isAvailable: row.is_available,
+      lineupSlot: row.lineup_slot,
     });
     byTeam.set(row.team_id, list);
   }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const LINKS = [
   { href: "/admin", label: "Sunday" },
@@ -32,6 +33,9 @@ export function AdminNavigation() {
             </li>
           );
         })}
+        <li className="ml-auto pl-2">
+          <ThemeToggle />
+        </li>
       </ul>
     </nav>
   );

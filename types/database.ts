@@ -138,6 +138,7 @@ export type TeamMemberRow = {
   position_rating_snapshot: number | null;
   preference_rank_snapshot: number | null;
   is_available: boolean;
+  lineup_slot: number | null;
   created_at: string;
 }
 

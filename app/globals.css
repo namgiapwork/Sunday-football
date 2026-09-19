@@ -1,37 +1,111 @@
 @import "tailwindcss";
 
 /*
- * Sporty, dark, deliberately committed to one look: this app is used on a phone
- * beside a pitch, often in the dark, and a single palette keeps the team colours
- * reading true. Team colour is never the only signal — the name is always shown.
+ * Premier League Fantasy look: deep purple with electric green in dark mode, white
+ * and purple in light. Components use the semantic names below (pitch = surfaces,
+ * chalk = text, lime = accent); only the values change between themes. Team colour
+ * is never the only signal — the name is always shown.
  */
 @theme {
-  --color-pitch-950: #090d0c;
-  --color-pitch-900: #0f1513;
-  --color-pitch-850: #151d1a;
-  --color-pitch-800: #1b2522;
-  --color-pitch-700: #26322e;
-  --color-pitch-600: #35443f;
+  --color-pitch-950: var(--pitch-950);
+  --color-pitch-900: var(--pitch-900);
+  --color-pitch-850: var(--pitch-850);
+  --color-pitch-800: var(--pitch-800);
+  --color-pitch-700: var(--pitch-700);
+  --color-pitch-600: var(--pitch-600);
 
-  --color-chalk: #f2f6f4;
-  --color-chalk-dim: #a3b1ac;
-  --color-chalk-faint: #6c7a75;
+  --color-chalk: var(--chalk);
+  --color-chalk-dim: var(--chalk-dim);
+  --color-chalk-faint: var(--chalk-faint);
 
-  --color-lime: #c8ff45;
-  --color-lime-dark: #a8dc24;
+  --color-lime: var(--lime);
+  --color-lime-dark: var(--lime-dark);
 
-  --color-kit-red: #f05252;
-  --color-kit-blue: #4b8ef7;
-  --color-kit-green: #34d07f;
-  --color-kit-yellow: #ecc23c;
-  --color-kit-orange: #f68a3c;
-  --color-kit-purple: #b07af5;
+  --color-kit-red: var(--kit-red);
+  --color-kit-blue: var(--kit-blue);
+  --color-kit-green: var(--kit-green);
+  --color-kit-yellow: var(--kit-yellow);
+  --color-kit-orange: var(--kit-orange);
+  --color-kit-purple: var(--kit-purple);
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Dark is the default. */
 :root {
   color-scheme: dark;
+  --pitch-950: #240029;
+  --pitch-900: #2f0336;
+  --pitch-850: #38093f;
+  --pitch-800: #451250;
+  --pitch-700: #5c2368;
+  --pitch-600: #763a83;
+
+  --chalk: #ffffff;
+  --chalk-dim: #dcc3e2;
+  --chalk-faint: #b193b9;
+
+  --lime: #00ff85;
+  --lime-dark: #00d96f;
+
+  --kit-red: #ff5470;
+  --kit-blue: #4fa3ff;
+  --kit-green: #34d07f;
+  --kit-yellow: #ecc23c;
+  --kit-orange: #f68a3c;
+  --kit-purple: #c08bff;
+}
+
+/* Light: white surfaces, purple ink, and the accent flips to FPL purple. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --pitch-950: #f4f1f6;
+  --pitch-900: #ffffff;
+  --pitch-850: #faf8fb;
+  --pitch-800: #ece6f0;
+  --pitch-700: #d8cddf;
+  --pitch-600: #bfaecb;
+
+  --chalk: #2a0030;
+  --chalk-dim: #58435f;
+  --chalk-faint: #6f5c76;
+
+  --lime: #37003c;
+  --lime-dark: #560d5d;
+
+  --kit-red: #d4213f;
+  --kit-blue: #1f6fd6;
+  --kit-green: #12995a;
+  --kit-yellow: #a87a00;
+  --kit-orange: #cc5f0c;
+  --kit-purple: #7a35c9;
+}
+
+/* No saved choice: follow the device. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --pitch-950: #f4f1f6;
+    --pitch-900: #ffffff;
+    --pitch-850: #faf8fb;
+    --pitch-800: #ece6f0;
+    --pitch-700: #d8cddf;
+    --pitch-600: #bfaecb;
+
+    --chalk: #2a0030;
+    --chalk-dim: #58435f;
+    --chalk-faint: #6f5c76;
+
+    --lime: #37003c;
+    --lime-dark: #560d5d;
+
+    --kit-red: #d4213f;
+    --kit-blue: #1f6fd6;
+    --kit-green: #12995a;
+    --kit-yellow: #a87a00;
+    --kit-orange: #cc5f0c;
+    --kit-purple: #7a35c9;
+  }
 }
 
 html {

@@ -19,6 +19,7 @@ import { SizeBalanceNotice } from "@/components/teams/size-balance-notice";
 import { TeamBalanceIndicator } from "@/components/teams/team-balance-indicator";
 import { AssignLatecomers } from "@/components/teams/assign-latecomers";
 import { TeamEditor } from "@/components/teams/team-editor";
+import { LineupEditor } from "@/components/teams/lineup-editor";
 
 export default async function TeamGeneratorPage({
   params,
@@ -109,6 +110,11 @@ export default async function TeamGeneratorPage({
           </div>
 
           <TeamEditor teams={teams} />
+
+          <div className="mt-8">
+            <SectionTitle className="mb-3">Lineup — who starts on the tactics board</SectionTitle>
+            <LineupEditor teams={teams} />
+          </div>
 
           <div className="mt-8">
             <SectionTitle className="mb-3">Publish</SectionTitle>

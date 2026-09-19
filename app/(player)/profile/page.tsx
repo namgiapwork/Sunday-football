@@ -4,6 +4,7 @@ import { AvatarForm } from "./avatar-form";
 import { ProfileForm } from "./profile-form";
 import { ChangePinForm } from "./change-pin-form";
 import { LogoutButton } from "./logout-button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { SectionTitle } from "@/components/ui/card";
 
 export const metadata = { title: "Profile — Sunday Football" };
@@ -14,7 +15,10 @@ export default async function ProfilePage() {
 
   return (
     <main className="px-5 py-8">
-      <h1 className="mb-1 text-3xl font-black tracking-tight">Your profile</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="mb-1 text-3xl font-black tracking-tight">Your profile</h1>
+        <ThemeToggle />
+      </div>
       <p className="mb-6 text-sm text-chalk-dim">
         Your positions and ratings are used whenever teams get picked next — including this Sunday, if the
         teams are not out yet. Teams that have already gone up keep the ratings they were picked with.

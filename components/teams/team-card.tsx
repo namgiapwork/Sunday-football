@@ -1,6 +1,7 @@
 import { PlayerAvatar } from "@/components/players/player-avatar";
 import { PositionBadge, RatingBadge } from "@/components/players/position-badge";
 import { kitColour } from "./team-colours";
+import { TacticsBoard } from "./tactics-board";
 import type { TeamView } from "@/lib/data/teams";
 
 /**
@@ -57,6 +58,25 @@ export function TeamCard({
           </li>
         ))}
       </ul>
+
+      <details className="group border-t border-pitch-700">
+        <summary
+          className={`flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-sm
+            font-bold hover:bg-pitch-850 [&::-webkit-details-marker]:hidden ${kit.text}`}
+        >
+          Possible lineup
+          <span aria-hidden className="text-chalk-faint transition-transform group-open:rotate-180">
+            ▾
+          </span>
+        </summary>
+        <div className="px-3 pb-3">
+          <p className="mb-3 rounded-xl border border-pitch-700 bg-pitch-850 px-3 py-2 text-xs leading-snug text-chalk-dim">
+            This lineup is assigned automatically from everyone&apos;s positions. The organisers can change it,
+            so talk it through with your team.
+          </p>
+          <TacticsBoard team={team} showRatings={showRatings} />
+        </div>
+      </details>
     </section>
   );
 }

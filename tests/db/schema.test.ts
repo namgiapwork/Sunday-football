@@ -161,6 +161,20 @@ describe("integrity rules", () => {
     ).rejects.toThrow();
   });
 
+  it("keeps lineup slots to 0-7, one player per slot, and lets any number be unset", async () => {
+    const team = "55555555-5555-4555-8555-000000000001";
+    const ids = (
+      await db.query<{ id: string }>(`select id from team_members where team_id = '${team}' order by id limit 2`)
+    ).rows.map((r) => r.id);
+
+    // Unset is fine for everyone, which is how existing rows look.
+    await db.exec(`update team_members set lineup_slot = null where team_id = '${team}'`);
+
+    await db.exec(`update team_members set lineup_slot = 3 where id = '${ids[0]}'`);
+    await expect(db.exec(`update team_members set lineup_slot = 3 where id = '${ids[1]}'`)).rejects.toThrow();
+    await expect(db.exec(`update team_members set lineup_slot = 8 where id = '${ids[1]}'`)).rejects.toThrow();
+  });
+
   it("refuses to put a player on two teams in the same Sunday", async () => {
     await expect(
       db.exec(`

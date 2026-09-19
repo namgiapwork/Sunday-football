@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
+
+const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap" });
+
+// Runs before paint so a saved theme never flashes the wrong colours.
+const THEME_SCRIPT = `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
 export const metadata: Metadata = {
   title: "Sunday Football",
@@ -16,7 +22,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#090d0c",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#240029" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f1f6" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -24,7 +33,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-GB">
+    <html lang="en-GB" className={montserrat.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-dvh antialiased">{children}</body>
     </html>
   );

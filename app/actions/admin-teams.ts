@@ -9,6 +9,7 @@ import { getTeams } from "@/lib/data/teams";
 import { assertTransition } from "@/lib/sessions/state";
 import { prepareTeamsForSession } from "@/lib/teams/prepare";
 import { defaultTeamsRevealAt } from "@/lib/sessions/deadline";
+import { autoSlots, SLOT_COUNT } from "@/lib/teams/formation";
 import { isPositionCode } from "@/lib/teams/positions";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateTeamsSchema } from "@/lib/validation/schemas";
@@ -109,7 +110,8 @@ export async function movePlayerAction(_prev: ActionState, formData: FormData): 
 
     const { error } = await db
       .from("team_members")
-      .update({ team_id: input.targetTeamId })
+      // A slot on the old team's board means nothing on the new one.
+      .update({ team_id: input.targetTeamId, lineup_slot: null })
       .eq("id", input.memberId);
 
     if (error) throw error;
@@ -387,6 +389,93 @@ export async function removeFromTeamAction(_prev: ActionState, formData: FormDat
     revalidatePath(`/admin/session/${member.session_id}/teams`);
     revalidatePath("/teams");
     return { ok: true, message: `${name} taken off the team sheet.` };
+  } catch (error) {
+    return toActionState(error);
+  }
+}
+
+/**
+ * Saves the starting eight for one team. `slot0`…`slot7` each hold a team member
+ * id (or nothing for an open slot); everyone else becomes a substitute.
+ */
+export async function setLineupAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await requireAdmin();
+    const teamId = z.uuid().parse(String(formData.get("teamId") ?? ""));
+
+    const picks = Array.from({ length: SLOT_COUNT }, (_, slot) => String(formData.get(`slot${slot}`) ?? ""));
+    const chosen = picks.filter((id) => id !== "");
+    // An empty board would read as "automatic", which is the reset button's job.
+    if (chosen.length === 0) return { ok: false, error: "Pick at least one starter, or use Re-pick automatically." };
+    if (new Set(chosen).size !== chosen.length) {
+      return { ok: false, error: "A player can only start in one spot." };
+    }
+
+    const db = supabaseAdmin();
+    const { data: team } = await db.from("teams").select("id, session_id").eq("id", teamId).maybeSingle();
+    if (!team) return { ok: false, error: "That team no longer exists." };
+
+    const { data: members } = await db
+      .from("team_members")
+      .select("id, is_available")
+      .eq("team_id", teamId);
+    const available = new Map((members ?? []).map((m) => [m.id, m.is_available]));
+
+    for (const id of chosen) {
+      if (!available.has(id)) return { ok: false, error: "That player is not on this team." };
+      if (!available.get(id)) return { ok: false, error: "A player who dropped out cannot start." };
+    }
+
+    // Clear first so swapping two players never trips the one-per-slot index.
+    const cleared = await db.from("team_members").update({ lineup_slot: null }).eq("team_id", teamId);
+    if (cleared.error) throw cleared.error;
+
+    for (const [slot, id] of picks.entries()) {
+      if (id === "") continue;
+      const { error } = await db.from("team_members").update({ lineup_slot: slot }).eq("id", id);
+      if (error) throw error;
+    }
+
+    revalidatePath(`/admin/session/${team.session_id}/teams`);
+    revalidatePath("/teams");
+    return { ok: true, message: "Lineup saved." };
+  } catch (error) {
+    return toActionState(error);
+  }
+}
+
+/** Re-runs the automatic pick from assigned positions and saves it. */
+export async function resetLineupAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await requireAdmin();
+    const teamId = z.uuid().parse(String(formData.get("teamId") ?? ""));
+
+    const db = supabaseAdmin();
+    const { data: team } = await db.from("teams").select("id, session_id").eq("id", teamId).maybeSingle();
+    if (!team) return { ok: false, error: "That team no longer exists." };
+
+    const { data: members, error: readError } = await db
+      .from("team_members")
+      .select("id, assigned_position, is_available")
+      .eq("team_id", teamId);
+    if (readError) throw readError;
+
+    const slots = autoSlots(
+      (members ?? []).map((m) => ({ id: m.id, position: m.assigned_position, isAvailable: m.is_available })),
+    );
+
+    // Clear first so the one-per-slot index is never hit mid-way.
+    const cleared = await db.from("team_members").update({ lineup_slot: null }).eq("team_id", teamId);
+    if (cleared.error) throw cleared.error;
+
+    for (const [id, slot] of slots) {
+      const { error } = await db.from("team_members").update({ lineup_slot: slot }).eq("id", id);
+      if (error) throw error;
+    }
+
+    revalidatePath(`/admin/session/${team.session_id}/teams`);
+    revalidatePath("/teams");
+    return { ok: true, message: "Lineup picked again from positions." };
   } catch (error) {
     return toActionState(error);
   }

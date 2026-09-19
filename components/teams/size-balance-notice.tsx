@@ -20,7 +20,7 @@ export function SizeBalanceNotice({ balance }: { balance: SizeBalance }) {
   return (
     <div
       role="status"
-      className="sticky top-14 z-20 rounded-2xl border border-kit-yellow/50 bg-[#2a2310] px-4 py-3 shadow-lg"
+      className="sticky top-14 z-20 rounded-2xl border border-kit-yellow/50 bg-pitch-900 px-4 py-3 shadow-lg"
     >
       <div className="flex items-start gap-3">
         <span aria-hidden className="text-lg leading-none">

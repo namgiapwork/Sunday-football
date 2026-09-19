@@ -3,6 +3,7 @@ import { getConfirmedPlayersForGeneration } from "@/lib/data/sessions";
 import { getTeams } from "@/lib/data/teams";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { kitForIndex } from "@/components/teams/team-colours";
+import { autoSlots } from "./formation";
 import { generateBalancedTeams } from "./generate-balanced-teams";
 import { recommendTeamSizes } from "./team-sizes";
 import type { GenerateTeamsResult } from "./types";
@@ -96,16 +97,21 @@ export async function prepareTeamsForSession(
   const teamIdByOrder = new Map(inserted.map((t) => [t.display_order, t.id]));
 
   const { error: memberError } = await db.from("team_members").insert(
-    result.teams.flatMap((team) =>
-      team.players.map((player) => ({
+    result.teams.flatMap((team) => {
+      // Start each team with the automatic lineup already saved; the admin can edit it.
+      const slots = autoSlots(
+        team.players.map((p) => ({ id: p.playerId, position: p.assignedPosition, isAvailable: true })),
+      );
+      return team.players.map((player) => ({
         team_id: teamIdByOrder.get(team.index)!,
         session_id: sessionId,
         player_id: player.playerId,
         assigned_position: player.assignedPosition,
         position_rating_snapshot: player.rating,
         preference_rank_snapshot: player.preferenceRank,
-      })),
-    ),
+        lineup_slot: slots.get(player.playerId) ?? null,
+      }));
+    }),
   );
 
   if (memberError) throw memberError;
