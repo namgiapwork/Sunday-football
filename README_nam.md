@@ -1,0 +1,1 @@
+Push the code and run npx vercel deploy --prod --token "$(tr -d '[:space:]' < .vercel-token)"

@@ -207,7 +207,13 @@ export async function publishTeamsAction(_prev: ActionState, formData: FormData)
 
     await db
       .from("sessions")
-      .update({ status: "teams_published", updated_by: admin.player.id })
+      .update({
+        status: "teams_published",
+        // A manual publish is the organiser saying "show them now"; the scheduled
+        // reveal only applies to the cron job's early picks.
+        teams_reveal_at: new Date().toISOString(),
+        updated_by: admin.player.id,
+      })
       .eq("id", sessionId);
 
     revalidatePath(`/admin/session/${sessionId}/teams`);
