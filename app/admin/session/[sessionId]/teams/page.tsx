@@ -71,9 +71,9 @@ export default async function TeamGeneratorPage({
 
       {signupStillOpen ? (
         <div className="mb-6">
-          <Alert tone="warning">
-            Signup is still open. Close it from the Sunday page before generating teams, or late replies will
-            not be included.
+          <Alert tone="info">
+            Signup is still open, which is normal — it runs until the day after the game so late changes get
+            recorded. Anybody who signs up after you pick teams appears here to be slotted in.
           </Alert>
         </div>
       ) : null}

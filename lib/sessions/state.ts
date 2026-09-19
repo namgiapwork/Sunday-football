@@ -28,11 +28,14 @@ export const SESSION_STATUS_LABELS: Record<SessionStatus, string> = {
  */
 const ALLOWED_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   draft: ["signup_open", "cancelled"],
-  signup_open: ["signup_closed", "draft", "cancelled"],
+  // Teams can be picked while signup is still open — it now runs past the game,
+  // so closing it first is a choice rather than a step.
+  signup_open: ["signup_closed", "teams_generated", "draft", "cancelled"],
   signup_closed: ["teams_generated", "signup_open", "cancelled"],
-  teams_generated: ["teams_published", "signup_closed", "cancelled"],
+  teams_generated: ["teams_published", "signup_closed", "signup_open", "cancelled"],
   teams_published: ["in_progress", "teams_generated", "cancelled"],
-  in_progress: ["completed", "teams_published", "cancelled"],
+  // Going back to picking teams on match day is a real thing that happens.
+  in_progress: ["completed", "teams_published", "teams_generated", "cancelled"],
   completed: ["in_progress"],
   cancelled: ["draft", "signup_open"],
 };

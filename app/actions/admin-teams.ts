@@ -31,14 +31,19 @@ export async function generateTeamsAction(_prev: ActionState, formData: FormData
     const session = await getSession(sessionId);
     if (!session) return { ok: false, error: "That Sunday no longer exists." };
 
+    // Signup now runs past the game, so waiting for it to close would mean never
+    // generating. Teams can be picked at any point before they go out.
     if (session.status === "teams_published") {
       return {
         ok: false,
-        error: "These teams are already published. Unpublish them first if you want to start again.",
+        error: "These teams are already published. Hide them first if you want to start again.",
       };
     }
-    if (!["signup_closed", "teams_generated"].includes(session.status)) {
-      return { ok: false, error: "Close signup before generating teams." };
+    if (session.status === "cancelled") {
+      return { ok: false, error: "This Sunday is cancelled." };
+    }
+    if (session.status === "completed") {
+      return { ok: false, error: "This Sunday is finished. Reopen it first if you need to change the teams." };
     }
 
     const players = await getConfirmedPlayersForGeneration(sessionId);
