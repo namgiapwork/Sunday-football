@@ -56,16 +56,32 @@ tests/         unit and schema tests
 
 ## Local development
 
-Requires Node 20+.
+Requires Node 20+, and a Supabase project to point at.
+
+- **Trying it out, or working on a feature?** Create your own — free, about two
+  minutes. You get the seeded demo squad and cannot break anyone's real Sunday.
+- **Co-maintaining the live group?** Ask to be added to the existing Supabase
+  project and take the keys from its dashboard yourself, rather than having them
+  pasted to you. Same access, but it can be revoked later and no service-role key
+  ends up sitting in a chat history.
 
 ```bash
 npm install
-cp .env.example .env.local
+npm run setup           # asks for your project URL and API keys
+npm run setup:supabase  # stores an account token so migrations can be applied
+npm run db:apply        # creates the tables
+npm run db:seed         # 35 demo players, a played Sunday and some upcoming ones
+npm run dev             # http://localhost:3000
 ```
 
-### 1. Create a Supabase project
+Every seeded player's PIN is `1234`. For an admin account, see
+[DEPLOYMENT.md](DEPLOYMENT.md) — organisers sign in with an email rather than a
+PIN.
 
-Then fill in `.env.local`:
+### What goes in .env.local
+
+`npm run setup` writes most of it, generating `SESSION_SECRET` and `CRON_SECRET`
+itself. If you would rather fill it in by hand:
 
 | Variable | Where to find it |
 | --- | --- |

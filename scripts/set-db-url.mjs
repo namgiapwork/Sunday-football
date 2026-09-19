@@ -4,21 +4,29 @@
  * by this script and that file. Run it with: npm run setup:db
  */
 import { readFileSync, writeFileSync, existsSync, copyFileSync } from "node:fs";
+import { config } from "dotenv";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 
 const FILE = ".env.local";
 if (!existsSync(FILE)) copyFileSync(".env.example", FILE);
 
+config({ path: FILE, quiet: true });
+
+// Point at whichever project this checkout is configured for.
+const ref =
+  (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").match(/^https:\/\/([a-z0-9]+)\.supabase\./)?.[1] ??
+  "<your-project-ref>";
+
 const rl = createInterface({ input: stdin, output: stdout });
 
 console.log(`
 Open your database settings:
-  https://supabase.com/dashboard/project/nnchomuinlcklzzfvptc/settings/database
+  https://supabase.com/dashboard/project/${ref}/settings/database
 
 Under "Connection string", choose the SESSION POOLER tab and copy the URI.
 It looks like:
-  postgresql://postgres.nnchomuinlcklzzfvptc:[YOUR-PASSWORD]@aws-1-eu-central-1.pooler.supabase.com:5432/postgres
+  postgresql://postgres.${ref}:[YOUR-PASSWORD]@aws-1-eu-central-1.pooler.supabase.com:5432/postgres
 `);
 
 const uri = (await rl.question("1. Paste the connection string\n   > ")).trim();
