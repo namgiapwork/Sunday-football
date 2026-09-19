@@ -4,12 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/current-user";
 import { getGroup } from "@/lib/data/groups";
-import { getConfirmedPlayersForGeneration, getSession } from "@/lib/data/sessions";
+import { getSession } from "@/lib/data/sessions";
 import { getTeams } from "@/lib/data/teams";
 import { assertTransition } from "@/lib/sessions/state";
+import { prepareTeamsForSession } from "@/lib/teams/prepare";
 import { defaultTeamsRevealAt } from "@/lib/sessions/deadline";
-import { generateBalancedTeams } from "@/lib/teams/generate-balanced-teams";
-import { kitForIndex } from "@/components/teams/team-colours";
 import { isPositionCode } from "@/lib/teams/positions";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateTeamsSchema } from "@/lib/validation/schemas";
@@ -46,77 +45,17 @@ export async function generateTeamsAction(_prev: ActionState, formData: FormData
       return { ok: false, error: "This Sunday is finished. Reopen it first if you need to change the teams." };
     }
 
-    const players = await getConfirmedPlayersForGeneration(sessionId);
-    if (players.length === 0) {
-      return { ok: false, error: "Teams cannot be generated because there are no confirmed players." };
-    }
+    const group = await getGroup();
 
-    // Regenerating should produce a genuinely different split (spec §13).
-    const existing = await getTeams(sessionId, true);
-    const previousAssignment: Record<string, number> = {};
-    for (const team of existing) {
-      for (const member of team.members) previousAssignment[member.playerId] = team.display_order;
-    }
-
-    const result = generateBalancedTeams(players, options.teamCount, {
+    const { result } = await prepareTeamsForSession(sessionId, {
+      teamCount: options.teamCount,
       balanceAbility: options.balanceAbility,
       balancePositions: options.balancePositions,
       respectPreferences: options.respectPreferences,
       balanceGoalkeepers: options.balanceGoalkeepers,
-      previousAssignment: existing.length ? previousAssignment : undefined,
+      actorId: admin.player.id,
+      colours: group?.team_colours,
     });
-
-    const db = supabaseAdmin();
-    const group = await getGroup();
-    const colours = group?.team_colours ?? [];
-
-    // Teams cascade to their members, so this clears the previous attempt whole.
-    await db.from("teams").delete().eq("session_id", sessionId);
-
-    const { data: inserted, error: teamError } = await db
-      .from("teams")
-      .insert(
-        result.teams.map((team) => {
-          const kit = kitForIndex(team.index);
-          const colour = colours[team.index] ?? kit.key;
-          return {
-            session_id: sessionId,
-            name: capitalise(colour),
-            colour,
-            display_order: team.index,
-            published: false,
-            created_by: admin.player.id,
-          };
-        }),
-      )
-      .select("id, display_order");
-
-    if (teamError || !inserted) throw teamError ?? new Error("Could not save the teams.");
-
-    const teamIdByOrder = new Map(inserted.map((t) => [t.display_order, t.id]));
-
-    const { error: memberError } = await db.from("team_members").insert(
-      result.teams.flatMap((team) =>
-        team.players.map((player) => ({
-          team_id: teamIdByOrder.get(team.index)!,
-          session_id: sessionId,
-          player_id: player.playerId,
-          assigned_position: player.assignedPosition,
-          position_rating_snapshot: player.rating,
-          preference_rank_snapshot: player.preferenceRank,
-        })),
-      ),
-    );
-
-    if (memberError) throw memberError;
-
-    if (session.status !== "teams_generated") {
-      assertTransition(session.status, "teams_generated");
-    }
-    await db
-      .from("sessions")
-      .update({ status: "teams_generated", updated_by: admin.player.id })
-      .eq("id", sessionId);
 
     revalidatePath(`/admin/session/${sessionId}/teams`);
     revalidatePath("/admin");
@@ -304,10 +243,6 @@ export async function unpublishTeamsAction(_prev: ActionState, formData: FormDat
   } catch (error) {
     return toActionState(error);
   }
-}
-
-function capitalise(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 /**
