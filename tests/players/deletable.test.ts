@@ -5,6 +5,8 @@ const clean: PlayerHistory = {
   playedSessions: 0,
   pastTeamPlacements: 0,
   matchEvents: 0,
+  statAdjustments: 0,
+  predictions: 0,
   isSelf: false,
   isLastAdmin: false,
 };
@@ -47,5 +49,10 @@ describe("canDeletePlayer", () => {
     expect(canDeletePlayer({ ...clean, isSelf: true, matchEvents: 5, playedSessions: 9 })).toMatchObject({
       reason: expect.stringContaining("your own"),
     });
+  });
+
+  it("refuses when Feed adjustments or predictions exist", () => {
+    expect(canDeletePlayer({ ...clean, statAdjustments: 1 })).toMatchObject({ allowed: false });
+    expect(canDeletePlayer({ ...clean, predictions: 2 })).toMatchObject({ allowed: false });
   });
 });

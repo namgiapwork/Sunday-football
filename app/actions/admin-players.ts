@@ -120,7 +120,7 @@ export async function deletePlayerAction(_prev: ActionState, formData: FormData)
     const { data: player } = await db.from("players").select("id, name").eq("id", playerId).maybeSingle();
     if (!player) return { ok: false, error: "That player no longer exists." };
 
-    const [{ data: playedSignups }, { data: placements }, { count: events }, { data: membership }, { count: admins }] =
+    const [{ data: playedSignups }, { data: placements }, { count: events }, { data: membership }, { count: admins }, { count: adjustments }, { count: predictions }] =
       await Promise.all([
         db
           .from("signups")
@@ -144,12 +144,16 @@ export async function deletePlayerAction(_prev: ActionState, formData: FormData)
           .eq("group_id", admin.groupId)
           .eq("role", "admin")
           .eq("is_active", true),
+        db.from("player_stat_adjustments").select("id", { count: "exact", head: true }).eq("player_id", playerId),
+        db.from("fixture_predictions").select("id", { count: "exact", head: true }).eq("player_id", playerId),
       ]);
 
     const verdict = canDeletePlayer({
       playedSessions: playedSignups?.length ?? 0,
       pastTeamPlacements: placements?.length ?? 0,
       matchEvents: events ?? 0,
+      statAdjustments: adjustments ?? 0,
+      predictions: predictions ?? 0,
       isSelf: playerId === admin.player.id,
       isLastAdmin: membership?.role === "admin" && (admins ?? 0) <= 1,
     });

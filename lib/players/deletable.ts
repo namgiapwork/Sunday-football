@@ -5,6 +5,9 @@ export interface PlayerHistory {
   pastTeamPlacements: number;
   /** Goals or assists credited to them. */
   matchEvents: number;
+  /** Admin goal/assist corrections and W/D/L predictions attached to them. */
+  statAdjustments: number;
+  predictions: number;
   isSelf: boolean;
   isLastAdmin: boolean;
 }
@@ -32,6 +35,13 @@ export function canDeletePlayer(history: PlayerHistory): DeleteVerdict {
       reason: `They have ${history.matchEvents} goal${
         history.matchEvents === 1 ? "" : "s"
       } or assists on record. Deactivate them instead — it removes them from future Sundays and keeps the history intact.`,
+    };
+  }
+  if (history.statAdjustments > 0 || history.predictions > 0) {
+    return {
+      allowed: false,
+      reason:
+        "They have Feed stats or predictions on record. Deactivate them instead — deleting would change the scores and leaderboard.",
     };
   }
   if (history.playedSessions > 0 || history.pastTeamPlacements > 0) {

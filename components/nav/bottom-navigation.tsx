@@ -31,6 +31,15 @@ function TeamsIcon() {
   );
 }
 
+function FeedIcon() {
+  return (
+    <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M5 4h14v16H5z" strokeLinejoin="round" />
+      <path d="M8.5 9h7M8.5 13h7M8.5 17h4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function ProfileIcon() {
   return (
     <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -54,6 +63,7 @@ export function BottomNavigation({ isAdmin }: { isAdmin: boolean }) {
   const items: Item[] = [
     { href: "/home", label: "Home", icon: <HomeIcon /> },
     { href: "/teams", label: "Teams", icon: <TeamsIcon /> },
+    { href: "/feed", label: "Feed", icon: <FeedIcon /> },
     { href: "/profile", label: "Profile", icon: <ProfileIcon /> },
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: <AdminIcon /> }] : []),
   ];

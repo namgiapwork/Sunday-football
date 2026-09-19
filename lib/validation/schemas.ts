@@ -118,3 +118,32 @@ export const generateTeamsSchema = z.object({
 export const sessionStatusSchema = z.enum(SESSION_STATUSES);
 
 export const memberRoleSchema = z.enum(["player", "scorekeeper", "admin"]);
+
+// ---- Feed ----
+
+export const predictionPickSchema = z.enum(["home", "draw", "away"]);
+
+const teamNameSchema = z.string().trim().min(1, "Enter a team name.").max(60, "Keep it under 60 characters.");
+const goalsSchema = z.coerce.number().int("Use a whole number.").min(0, "Goals cannot be negative.").max(99);
+
+export const fixtureSchema = z
+  .object({
+    homeTeam: teamNameSchema,
+    awayTeam: teamNameSchema,
+    competition: z.string().trim().max(60).optional(),
+    kickoffLocal: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Pick a kickoff date and time."),
+  })
+  .refine((v) => v.homeTeam.toLowerCase() !== v.awayTeam.toLowerCase(), {
+    message: "Home and away must be different teams.",
+    path: ["awayTeam"],
+  });
+
+export const fixtureResultSchema = z.object({ homeGoals: goalsSchema, awayGoals: goalsSchema });
+
+export const fixtureStatusSchema = z.enum(["scheduled", "postponed", "cancelled"]);
+
+export const statAdjustmentSchema = z.object({
+  stat: z.enum(["goal", "assist"]),
+  target: z.coerce.number().int("Use a whole number.").min(0, "A total cannot be negative.").max(9999),
+  reason: z.string().trim().min(3, "Say why you are changing it (at least 3 characters).").max(200),
+});

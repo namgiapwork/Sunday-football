@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/admin", label: "Sunday" },
   { href: "/admin/players", label: "Players" },
   { href: "/admin/attendance", label: "Attendance" },
+  { href: "/admin/feed", label: "Feed" },
   { href: "/admin/settings", label: "Settings" },
   { href: "/home", label: "Player view" },
 ];

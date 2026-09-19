@@ -5,6 +5,9 @@ export type MemberRole = "player" | "scorekeeper" | "admin";
 export type SignupStatus = "confirmed" | "maybe" | "declined";
 export type MatchStatus = "scheduled" | "in_progress" | "paused" | "completed" | "cancelled";
 export type MatchEventType = "goal";
+export type FixtureStatus = "scheduled" | "finished" | "postponed" | "cancelled";
+export type PredictionPick = "home" | "draw" | "away";
+export type PlayerStat = "goal" | "assist";
 
 /** Compact stand-in for `supabase gen types`: Insert requires only what the DB does. */
 type Table<Row, Required extends keyof Row = never> = {
@@ -13,6 +16,45 @@ type Table<Row, Required extends keyof Row = never> = {
   Update: Partial<Row>;
   Relationships: [];
 };
+
+export type FixtureRow = {
+  id: string;
+  group_id: string;
+  home_team: string;
+  away_team: string;
+  competition: string | null;
+  kickoff_at: string;
+  status: FixtureStatus;
+  home_goals: number | null;
+  away_goals: number | null;
+  external_source: string | null;
+  external_id: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type FixturePredictionRow = {
+  id: string;
+  fixture_id: string;
+  player_id: string;
+  pick: PredictionPick;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PlayerStatAdjustmentRow = {
+  id: string;
+  group_id: string;
+  player_id: string;
+  stat: PlayerStat;
+  delta: number;
+  reason: string;
+  created_by: string | null;
+  created_at: string;
+  voided_at: string | null;
+}
 
 export type GroupRow = {
   id: string;
@@ -195,6 +237,9 @@ export type Database = {
       team_members: Table<TeamMemberRow, "team_id" | "session_id" | "player_id" | "assigned_position">;
       matches: Table<MatchRow, "session_id" | "team_a_id" | "team_b_id" | "scheduled_order">;
       match_events: Table<MatchEventRow, "match_id" | "session_id" | "team_id">;
+      fixtures: Table<FixtureRow, "group_id" | "home_team" | "away_team" | "kickoff_at">;
+      fixture_predictions: Table<FixturePredictionRow, "fixture_id" | "player_id" | "pick">;
+      player_stat_adjustments: Table<PlayerStatAdjustmentRow, "group_id" | "player_id" | "stat" | "delta" | "reason">;
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
