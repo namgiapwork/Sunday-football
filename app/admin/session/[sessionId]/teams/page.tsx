@@ -15,6 +15,7 @@ import { GenerateTeamsForm } from "@/components/teams/generate-teams-form";
 import { PublishControls } from "@/components/teams/publish-controls";
 import { RevealControls } from "@/components/teams/reveal-controls";
 import { ShareTeams } from "@/components/teams/share-teams";
+import { SizeBalanceNotice } from "@/components/teams/size-balance-notice";
 import { TeamBalanceIndicator } from "@/components/teams/team-balance-indicator";
 import { AssignLatecomers } from "@/components/teams/assign-latecomers";
 import { TeamEditor } from "@/components/teams/team-editor";
@@ -102,6 +103,11 @@ export default async function TeamGeneratorPage({
           </div>
 
           <SectionTitle className="mb-3">Teams — tap a player to move them</SectionTitle>
+
+          <div className="mb-3">
+            <SizeBalanceNotice balance={arrangement.sizeBalance} />
+          </div>
+
           <TeamEditor teams={teams} />
 
           <div className="mt-8">

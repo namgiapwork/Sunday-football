@@ -31,11 +31,13 @@ export function TeamBalanceIndicator({ summary }: { summary: ArrangementSummary 
         </dl>
       </div>
 
-      {summary.warnings.map((warning) => (
-        <Alert key={warning} tone="warning">
-          {warning}
-        </Alert>
-      ))}
+      {summary.warnings
+        .filter((warning) => warning !== summary.sizeBalance.message)
+        .map((warning) => (
+          <Alert key={warning} tone="warning">
+            {warning}
+          </Alert>
+        ))}
     </div>
   );
 }

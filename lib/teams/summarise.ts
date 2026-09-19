@@ -1,4 +1,5 @@
 import { PREFERENCE_PENALTY, coverageGapsOf, shapeImbalanceOf } from "./evaluate";
+import { computeTeamSizes } from "./team-sizes";
 import type { PositionCategory, PositionCode } from "./positions";
 
 export interface TeamSummaryInput {
@@ -20,13 +21,65 @@ export interface TeamSummary {
   unavailableCount: number;
 }
 
+export interface SizeBalance {
+  even: boolean;
+  /** Teams carrying more players than the split allows. */
+  over: { name: string; size: number; excess: number }[];
+  /** Teams left short. */
+  under: { name: string; size: number; shortfall: number }[];
+  /** One sentence naming the teams, or null when the sizes are fine. */
+  message: string | null;
+}
+
 export interface ArrangementSummary {
   teams: TeamSummary[];
   averageRatingSpread: number | null;
   balanceScore: number | null;
   firstChoiceCount: number;
   playerCount: number;
+  sizeBalance: SizeBalance;
   warnings: string[];
+}
+
+/**
+ * Whether the teams are evenly filled, and which ones are not.
+ *
+ * Moving a player leaves one team over and another short, and "uneven: 9/8/7/6"
+ * does not tell an organiser which is which. This names them.
+ */
+export function sizeBalance(teams: { name: string; size: number }[]): SizeBalance {
+  if (teams.length < 2) return { even: true, over: [], under: [], message: null };
+
+  const total = teams.reduce((sum, t) => sum + t.size, 0);
+  const ideal = computeTeamSizes(total, teams.length);
+  const largest = Math.max(...ideal);
+  const smallest = Math.min(...ideal);
+
+  const over = teams
+    .filter((t) => t.size > largest)
+    .map((t) => ({ name: t.name, size: t.size, excess: t.size - largest }));
+  const under = teams
+    .filter((t) => t.size < smallest)
+    .map((t) => ({ name: t.name, size: t.size, shortfall: smallest - t.size }));
+
+  if (over.length === 0 && under.length === 0) {
+    return { even: true, over: [], under: [], message: null };
+  }
+
+  const parts: string[] = [];
+  for (const team of over) {
+    parts.push(`${team.name} has ${team.size} — ${team.excess} too many`);
+  }
+  for (const team of under) {
+    parts.push(`${team.name} has ${team.size} — ${team.shortfall} short`);
+  }
+
+  return {
+    even: false,
+    over,
+    under,
+    message: `${parts.join(", ")}. An even split of ${total} is ${ideal.join(" / ")}.`,
+  };
 }
 
 const CATEGORY_LABELS: Record<PositionCategory, string> = {
@@ -83,10 +136,8 @@ export function summariseArrangement(teams: TeamSummaryInput[]): ArrangementSumm
       );
     }
   }
-  const sizes = summaries.map((t) => t.size);
-  if (sizes.length > 1 && Math.max(...sizes) - Math.min(...sizes) > 1) {
-    warnings.push(`Team sizes are uneven: ${sizes.join(" / ")}.`);
-  }
+  const sizes = sizeBalance(summaries.map((t) => ({ name: t.name, size: t.size })));
+  if (sizes.message) warnings.push(sizes.message);
 
   return {
     teams: summaries,
@@ -94,6 +145,7 @@ export function summariseArrangement(teams: TeamSummaryInput[]): ArrangementSumm
     balanceScore: averages.length ? Math.max(0, Math.min(100, Math.round(100 - penalty * 2.5))) : null,
     firstChoiceCount: allMembers.filter((m) => m.preferenceRank === 1).length,
     playerCount,
+    sizeBalance: sizes,
     warnings,
   };
 }
